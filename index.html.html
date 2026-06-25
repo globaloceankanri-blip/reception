@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <title>楊國福 川崎店 順番待ち</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <style>
+    body { font-family: 'Helvetica Neue', Arial, sans-serif; background-color: #f8f9fa; margin: 0; padding: 20px; color: #333; }
+    .container { max-width: 400px; margin: 0 auto; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+    h1 { text-align: center; color: #e60012; font-size: 24px; margin-bottom: 5px; }
+    .store-sub { text-align: center; color: #666; font-size: 14px; margin-bottom: 25px; }
+    .form-group { margin-bottom: 20px; }
+    label { display: block; font-weight: bold; margin-bottom: 8px; font-size: 14px; }
+    input[type="text"], select { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 16px; }
+    .btn { display: block; width: 100%; padding: 15px; background-color: #e60012; color: white; border: none; border-radius: 6px; font-size: 18px; font-weight: bold; cursor: pointer; text-align: center; }
+    .btn:hover { background-color: #c00010; }
+    .result { display: none; text-align: center; padding: 20px 0; }
+    .ticket-num { font-size: 48px; font-weight: bold; color: #e60012; margin: 20px 0; }
+    .status-box { padding: 15px; border-radius: 8px; font-size: 18px; font-weight: bold; margin-bottom: 15px; }
+    .status-waiting { background-color: #fff3cd; color: #856404; }
+    .status-calling { background-color: #f8d7da; color: #721c24; border: 2px solid #e60012; animation: pulse 2s infinite; }
+    @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.02); } 100% { transform: scale(1); } }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h1>楊國福 麻辣湯</h1>
+  <div class="store-sub">川崎店 順番待ち受付</div>
+  
+  <div id="inputForm">
+    <div class="form-group">
+      <label for="userName">お名前（カタカナやニックネームでOK）</label>
+      <input type="text" id="userName" placeholder="例：ヤマダ">
+    </div>
+    
+    <div class="form-group">
+      <label for="adultCount">大人（中学生以上）の人数</label>
+      <select id="adultCount">
+        <option value="1">1名</option>
+        <option value="2">2名</option>
+        <option value="3">3名</option>
+        <option value="4">4名</option>
+        <option value="5">5名以上</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label for="childCount">お子様（小学生以下）の人数</label>
+      <select id="childCount">
+        <option value="0">0名</option>
+        <option value="1">1名</option>
+        <option value="2">2名</option>
+        <option value="3">3名</option>
+      </select>
+    </div>
+    
+    <button class="btn" onclick="submitForm()">順番待ちを登録する</button>
+  </div>
+  
+  <div id="resultScreen" class="result">
+    <div id="statusMessage" class="status-box status-waiting">⏳ まもなく順番です</div>
+    <div style="color: #666; font-size: 14px;">あなたの受付番号</div>
+    <div id="ticketNumber" class="ticket-num">--番</div>
+    <p id="instructionText">順番が近づくまで、お店の付近でお待ちください。<br><span style="font-size:12px; color:#999;">※LINEへの通知をオンにしている場合、メッセージが届きます。</span></p>
+  </div>
+</div>
+
+<script>
+  var myNumber = null;
+  var userLineId = null;
+
+  // 💡 LINEの中で開かれたら自動で起動する仕組み（Googleの邪魔が入りません）
+  window.onload = function() {
+    liff.init({ liffId: "2010495808-71rxBAfN" }) 
+      .then(function() {
+        if (liff.isLoggedIn()) {
+          liff.getProfile().then(function(profile) {
+            userLineId = profile.userId; 
+            document.getElementById('userName').value = profile.displayName; // お名前自動入力
+          });
+        } else {
+          liff.login(); 
+        }
+      })
+      .catch(function(err) {
+        console.log("LIFF初期化エラー:", err);
+      });
+  };
+
+  // ★ご自身のGASウェブアプリのURLをここに貼り付けてください
+  var GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzzuRrG_olIbLIn23nRY0wrWXnf7AuLM_coU8aP4MB5cYfOspsb16TsSXrw7j-jhVMZ/exec";
+
+  function submitForm() {
+    var name = document.getElementById('userName').value || '指定なし';
+    var adult = document.getElementById('adultCount').value;
+    var child = document.getElementById('childCount').value;
+    
+    document.querySelector('.btn').innerText = '登録中...';
+    document.querySelector('.btn').disabled = true;
+    
+    // GASへデータをインターネット経由で安全に送信する
+    fetch(GAS_WEB_APP_URL, {
+      method: 'POST',
+      body: JSON.stringify({
+        action: 'register',
+        name: name,
+        adult: adult,
+        child: child,
+        lineUserId: userLineId
+      })
+    })
+    .then(response => response.json())
+    .then(response => {
+      if(response.success) {
+        myNumber = response.number;
+        document.getElementById('inputForm').style.display = 'none';
+        document.getElementById('ticketNumber').innerText = myNumber + '番';
+        document.getElementById('resultScreen').style.display = 'block';
+        
+        setInterval(startStatusCheck, 5000);
+      }
+    });
+  }
+
+  function startStatusCheck() {
+    if (!myNumber) return;
+    
+    fetch(GAS_WEB_APP_URL, {
+      method: 'POST',
+      body: JSON.stringify({
+        action: 'checkStatus',
+        number: myNumber
+      })
+    })
+    .then(response => response.json())
+    .then(response => {
+      if (response.success) {
+        var msgBox = document.getElementById('statusMessage');
+        var text = document.getElementById('instructionText');
+        
+        if (response.status === '呼び出し中') {
+          msgBox.innerText = '📢 お呼び出し中！店内へお越しください';
+          msgBox.className = 'status-box status-calling';
+          text.innerHTML = '<strong style="color:#e60012;">店員にこの画面を見せてご案内を受けてください。</strong>';
+        } else if (response.status === 'ご案内済み') {
+          msgBox.innerText = '✅ ご案内が完了しました';
+          msgBox.className = 'status-box';
+          msgBox.style.backgroundColor = '#e2e3e5';
+          msgBox.style.color = '#383d41';
+          text.innerText = 'ご来店ありがとうございました！';
+        }
+      }
+    });
+  }
+</script>
+
+</body>
+</html>
