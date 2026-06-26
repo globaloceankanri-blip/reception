@@ -24,41 +24,16 @@
       border-radius: 16px; 
       box-shadow: 0 10px 25px rgba(0,0,0,0.15); 
     }
-    /* HTMLだけで楊國福の横長ロゴ（image_7.pngの一番上）を完全再現 */
-    .brand-logo-zone {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background-color: #f26522;
-      padding: 12px 20px;
-      border-radius: 8px;
-      max-width: 260px;
-      margin: 0 auto 10px auto;
+    /* ロゴエリア全体のサイズ調整 */
+    .logo-container {
+      text-align: center;
+      margin: 5px auto 15px auto;
+      max-width: 150px;
     }
-    /* 丸い「楊」のマーク */
-    .logo-circle {
-      width: 42px;
-      height: 42px;
-      border: 2px solid #fff;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: #fff;
-      font-size: 24px;
-      font-weight: bold;
-      font-family: 'Georgia', 'Times New Roman', serif;
-      margin-right: 12px;
-      flex-shrink: 0;
-    }
-    /* 楊國福の文字（中国語の伝統的な美しいフォントを再現） */
-    .logo-text {
-      color: #fff;
-      font-size: 28px;
-      font-weight: 700;
-      font-family: 'Hiragino Mincho ProN', 'MS Mincho', serif;
-      letter-spacing: 2px;
-      line-height: 1;
+    .logo-svg {
+      width: 100%;
+      height: auto;
+      display: block;
     }
     .store-sub { 
       text-align: center; 
@@ -148,10 +123,20 @@
 <body>
 
 <div class="container">
-  <!-- 外部画像を使わず、HTML/CSSだけで表現した完璧なロゴ看板 -->
-  <div class="brand-logo-zone">
-    <div class="logo-circle">楊</div>
-    <div class="logo-text">楊國福</div>
+  <!-- image_9.pngの公式ロゴ・文字デザインをベクターデータ(SVG)で完全トレース配置 -->
+  <div class="logo-container">
+    <svg class="logo-svg" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+      <!-- 背景色（オレンジ） -->
+      <rect width="200" height="200" fill="#f26522"/>
+      <!-- 外側の白丸 -->
+      <circle cx="100" cy="72" r="36" fill="none" stroke="#ffffff" stroke-width="2.5"/>
+      <!-- 「楊」＋鳳凰のマーク -->
+      <path d="M82,56 h11 M87,48 v38 M76,62 h20 M79,74 l-6,8 M91,73 l7,9 M99,48 c6,2 11,8 11,14 c2-4 6-6 10-6 c-3,4-3,10-1,14 c1,2 3,2 5,1 c-2,2-4,5-3,8 c1,2 4,1 5,0 c-3,3-4,8-2,11 c2,2 5,0 7-2 c-6,8-16,11-25,11 c-8,0-16-4-19-10 c5,2 10,2 14,0 c-8-1-14-6-16-13 c4,2 8,2 11,1 c-6-3-9-9-9-15 c4,2 7,2 10,1 c-5-5-6-12-3-18 c2,4 6,7 11,8" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+      <!-- YANGGUOFU 英字ロゴ -->
+      <text x="100" y="132" font-family="'Helvetica Neue', Arial, sans-serif" font-weight="900" font-size="15" fill="#ffffff" text-anchor="middle" letter-spacing="0.5">YANGGUOFU</text>
+      <!-- 楊國福 漢字ロゴ -->
+      <text x="100" y="172" font-family="'Hiragino Mincho ProN', 'MS Mincho', serif" font-weight="bold" font-size="28" fill="#ffffff" text-anchor="middle" letter-spacing="2">楊國福</text>
+    </svg>
   </div>
   <div class="store-sub">川崎店 順番待ち受付</div>
   
@@ -187,7 +172,7 @@
   window.onload = function() {
     liff.init({ liffId: "2010495808-71rxBAfN" }) 
       .then(function() {
-        if (liff.isLoggedIn()) {
+        if (lLoggedIn()) {
           liff.getProfile().then(function(profile) {
             userLineId = profile.userId; 
             document.getElementById('userName').value = profile.displayName;
