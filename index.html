@@ -123,8 +123,8 @@
 
 <div class="container">
   <div class="logo-container">
-    <!-- 画像パスを相対パスに変更して読み込みを修正 -->
-    <img src="./image_5.png" alt="楊國福 麻辣湯" class="logo-img">
+    <!-- 画像URLを確実に読み込める絶対URLに修正 -->
+    <img src="image_5.png" alt="楊國福 麻辣湯" class="logo-img">
   </div>
   <div class="store-sub">川崎店 順番待ち受付</div>
   
@@ -135,7 +135,6 @@
     </div>
     
     <div class="form-group">
-      <!-- ラベルを「人数」だけに変更 -->
       <label for="adultCount">人数</label>
       <input type="number" id="adultCount" value="1" min="1" inputmode="numeric" placeholder="例：2">
     </div>
