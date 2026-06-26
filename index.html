@@ -24,7 +24,6 @@
       border-radius: 16px; 
       box-shadow: 0 10px 25px rgba(0,0,0,0.15); 
     }
-    /* ロゴエリア全体のサイズ調整 */
     .logo-container {
       text-align: center;
       margin: 5px auto 15px auto;
@@ -58,7 +57,6 @@
       box-sizing: border-box; 
       font-size: 16px; 
       background-color: #fcfcfc;
-      transition: border-color 0.2s;
     }
     input[type="text"]:focus, input[type="number"]:focus {
       border-color: #f26522;
@@ -78,26 +76,37 @@
       cursor: pointer; 
       text-align: center; 
       box-shadow: 0 4px 12px rgba(242, 101, 34, 0.3);
-      transition: all 0.2s;
       margin-top: 10px;
     }
-    .btn:hover { 
-      background: linear-gradient(90deg, #e44d00 0%, #f26522 100%); 
-      box-shadow: 0 6px 16px rgba(242, 101, 34, 0.4);
-    }
-    .btn:disabled {
-      background: #ccc;
-      box-shadow: none;
-      cursor: not-allowed;
-    }
+    .btn:disabled { background: #ccc; box-shadow: none; }
     .result { display: none; text-align: center; padding: 10px 0; }
-    .ticket-num { 
-      font-size: 54px; 
-      font-weight: 900; 
-      color: #f26522; 
-      margin: 15px 0; 
-      letter-spacing: -1px;
+    
+    /* 待ち状況の表示スタイル */
+    .waiting-box {
+      background-color: #f8f9fa;
+      border-radius: 12px;
+      padding: 15px;
+      margin: 15px 0;
+      border: 1px solid #e9ecef;
     }
+    .waiting-row {
+      display: flex;
+      justify-content: space-between;
+      margin: 8px 0;
+      font-size: 16px;
+    }
+    .waiting-val {
+      font-weight: bold;
+      color: #e44d00;
+      font-size: 20px;
+    }
+    .user-name-title {
+      font-size: 22px;
+      font-weight: bold;
+      color: #333;
+      margin-bottom: 5px;
+    }
+    
     .status-box { 
       padding: 16px; 
       border-radius: 10px; 
@@ -117,24 +126,17 @@
       animation: pulse 2s infinite; 
     }
     @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.02); } 100% { transform: scale(1); } }
-    #instructionText { line-height: 1.6; color: #555; }
   </style>
 </head>
 <body>
 
 <div class="container">
-  <!-- image_9.pngの公式ロゴ・文字デザインをベクターデータ(SVG)で完全トレース配置 -->
   <div class="logo-container">
     <svg class="logo-svg" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
-      <!-- 背景色（オレンジ） -->
       <rect width="200" height="200" fill="#f26522"/>
-      <!-- 外側の白丸 -->
       <circle cx="100" cy="72" r="36" fill="none" stroke="#ffffff" stroke-width="2.5"/>
-      <!-- 「楊」＋鳳凰のマーク -->
       <path d="M82,56 h11 M87,48 v38 M76,62 h20 M79,74 l-6,8 M91,73 l7,9 M99,48 c6,2 11,8 11,14 c2-4 6-6 10-6 c-3,4-3,10-1,14 c1,2 3,2 5,1 c-2,2-4,5-3,8 c1,2 4,1 5,0 c-3,3-4,8-2,11 c2,2 5,0 7-2 c-6,8-16,11-25,11 c-8,0-16-4-19-10 c5,2 10,2 14,0 c-8-1-14-6-16-13 c4,2 8,2 11,1 c-6-3-9-9-9-15 c4,2 7,2 10,1 c-5-5-6-12-3-18 c2,4 6,7 11,8" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-      <!-- YANGGUOFU 英字ロゴ -->
       <text x="100" y="132" font-family="'Helvetica Neue', Arial, sans-serif" font-weight="900" font-size="15" fill="#ffffff" text-anchor="middle" letter-spacing="0.5">YANGGUOFU</text>
-      <!-- 楊國福 漢字ロゴ -->
       <text x="100" y="172" font-family="'Hiragino Mincho ProN', 'MS Mincho', serif" font-weight="bold" font-size="28" fill="#ffffff" text-anchor="middle" letter-spacing="2">楊國福</text>
     </svg>
   </div>
@@ -150,8 +152,6 @@
       <label for="adultCount">人数</label>
       <input type="number" id="adultCount" value="1" min="1" inputmode="numeric" placeholder="例：2">
     </div>
-
-    <!-- お子様の人数（裏側処理用） -->
     <input type="hidden" id="childCount" value="0">
     
     <button class="btn" onclick="submitForm()">順番待ちを登録する</button>
@@ -159,20 +159,35 @@
   
   <div id="resultScreen" class="result">
     <div id="statusMessage" class="status-box status-waiting">⏳ まもなく順番です</div>
-    <div style="color: #666; font-size: 14px; font-weight: bold;">あなたの受付番号</div>
-    <div id="ticketNumber" class="ticket-num">--番</div>
-    <p id="instructionText">順番が近づくまで、お店の付近でお待ちください。<br><span style="font-size:12px; color:#999;">※LINEへの通知をオンにしている場合、メッセージが届きます。</span></p>
+    
+    <div id="displayRegisteredName" class="user-name-title">ーー 様</div>
+    <div style="color: #666; font-size: 13px; margin-bottom: 10px;" id="ticketNumberDisplay">（受付番号: --番）</div>
+
+    <!-- 新設：リアルタイム待ち状況ボックス -->
+    <div class="waiting-box">
+      <div class="waiting-row">
+        <span>現在の全体の待ち組数:</span>
+        <span class="waiting-val" id="totalWaitingTeams">- 組</span>
+      </div>
+      <div class="waiting-row">
+        <span>あなたの順番まであと:</span>
+        <span class="waiting-val" id="yourTurnOrder">- 番目</span>
+      </div>
+    </div>
+
+    <p id="instructionText" style="line-height: 1.6; color: #555;">順番が近づくまで、お店の付近でお待ちください。<br><span style="font-size:12px; color:#999;">※LINEへの通知をオンにしている場合、メッセージが届きます。</span></p>
   </div>
 </div>
 
 <script>
   var myNumber = null;
   var userLineId = null;
+  var registeredName = '';
 
   window.onload = function() {
     liff.init({ liffId: "2010495808-71rxBAfN" }) 
       .then(function() {
-        if (lLoggedIn()) {
+        if (liff.isLoggedIn()) {
           liff.getProfile().then(function(profile) {
             userLineId = profile.userId; 
             document.getElementById('userName').value = profile.displayName;
@@ -189,7 +204,7 @@
   var GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbz4-pi84iDRCQtdgLdCk3Zh6XUXaNsBbFG15LUo-GQHQ5CTbV_xEGa6Cs6HT3-m3A14/exec";
 
   function submitForm() {
-    var name = document.getElementById('userName').value || '指定なし';
+    registeredName = document.getElementById('userName').value || '指定なし';
     var adult = document.getElementById('adultCount').value || '1';
     var child = document.getElementById('childCount').value;
     
@@ -200,7 +215,7 @@
       method: 'POST',
       body: JSON.stringify({
         action: 'register',
-        name: name,
+        name: registeredName,
         adult: adult,
         child: child,
         lineUserId: userLineId
@@ -211,9 +226,13 @@
       if(response.success) {
         myNumber = response.number;
         document.getElementById('inputForm').style.display = 'none';
-        document.getElementById('ticketNumber').innerText = myNumber + '番';
+        document.getElementById('displayRegisteredName').innerText = registeredName + ' 様';
+        document.getElementById('ticketNumberDisplay').innerText = '（受付番号: ' + myNumber + '番）';
         document.getElementById('resultScreen').style.display = 'block';
         
+        // 初回ステータスチェック
+        startStatusCheck();
+        // 5秒ごとに更新
         setInterval(startStatusCheck, 5000);
       }
     });
@@ -235,6 +254,10 @@
         var msgBox = document.getElementById('statusMessage');
         var text = document.getElementById('instructionText');
         
+        // 待ち組数と何番目かを画面に反映
+        document.getElementById('totalWaitingTeams').innerText = response.totalWaiting + ' 組';
+        document.getElementById('yourTurnOrder').innerText = response.yourPosition + ' 番目';
+        
         if (response.status === '呼び出し中') {
           msgBox.innerText = '📢 お呼び出し中！店内へお越しください';
           msgBox.className = 'status-box status-calling';
@@ -246,6 +269,7 @@
           msgBox.style.color = '#383d41';
           msgBox.style.border = 'none';
           text.innerText = 'ご来店ありがとうございました！';
+          document.getElementById('yourTurnOrder').innerText = '0 番目';
         }
       }
     });
