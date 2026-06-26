@@ -7,21 +7,119 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
   <style>
-    body { font-family: 'Helvetica Neue', Arial, sans-serif; background-color: #f8f9fa; margin: 0; padding: 20px; color: #333; }
-    .container { max-width: 400px; margin: 0 auto; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-    h1 { text-align: center; color: #e60012; font-size: 24px; margin-bottom: 5px; }
-    .store-sub { text-align: center; color: #666; font-size: 14px; margin-bottom: 25px; }
-    .form-group { margin-bottom: 20px; }
-    label { display: block; font-weight: bold; margin-bottom: 8px; font-size: 14px; }
-    input[type="text"], select { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 16px; }
-    .btn { display: block; width: 100%; padding: 15px; background-color: #e60012; color: white; border: none; border-radius: 6px; font-size: 18px; font-weight: bold; cursor: pointer; text-align: center; }
-    .btn:hover { background-color: #c00010; }
-    .result { display: none; text-align: center; padding: 20px 0; }
-    .ticket-num { font-size: 48px; font-weight: bold; color: #e60012; margin: 20px 0; }
-    .status-box { padding: 15px; border-radius: 8px; font-size: 18px; font-weight: bold; margin-bottom: 15px; }
-    .status-waiting { background-color: #fff3cd; color: #856404; }
-    .status-calling { background-color: #f8d7da; color: #721c24; border: 2px solid #e60012; animation: pulse 2s infinite; }
+    /* 楊國福のブランドオレンジをベースにした背景グラデーション */
+    body { 
+      font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', sans-serif; 
+      background: linear-gradient(135deg, #f26522 0%, #e44d00 100%); 
+      margin: 0; 
+      padding: 20px; 
+      color: #333;
+      min-height: 100vh;
+      box-sizing: border-box;
+    }
+    /* 高級感のあるカードデザイン */
+    .container { 
+      max-width: 400px; 
+      margin: 20px auto 0 auto; 
+      background: #ffffff; 
+      padding: 30px 25px; 
+      border-radius: 16px; 
+      box-shadow: 0 10px 25px rgba(0,0,0,0.15); 
+    }
+    /* ロゴテキスト（鮮やかなブランドオレンジ） */
+    h1 { 
+      text-align: center; 
+      color: #f26522; 
+      font-size: 26px; 
+      margin: 0 0 5px 0; 
+      font-weight: bold;
+      letter-spacing: 1px;
+    }
+    .store-sub { 
+      text-align: center; 
+      color: #666; 
+      font-size: 14px; 
+      margin-bottom: 30px; 
+      font-weight: 500;
+    }
+    .form-group { margin-bottom: 22px; }
+    label { 
+      display: block; 
+      font-weight: bold; 
+      margin-bottom: 10px; 
+      font-size: 14px; 
+      color: #444;
+    }
+    input[type="text"], select { 
+      width: 100%; 
+      padding: 14px; 
+      border: 2px solid #eee; 
+      border-radius: 8px; 
+      box-sizing: border-box; 
+      font-size: 16px; 
+      background-color: #fcfcfc;
+      transition: border-color 0.2s;
+    }
+    input[type="text"]:focus, select:focus {
+      border-color: #f26522;
+      outline: none;
+      background-color: #fff;
+    }
+    /* 楊國福オレンジのプレミアムボタン */
+    .btn { 
+      display: block; 
+      width: 100%; 
+      padding: 16px; 
+      background: linear-gradient(90deg, #f26522 0%, #ff7a38 100%); 
+      color: white; 
+      border: none; 
+      border-radius: 8px; 
+      font-size: 18px; 
+      font-weight: bold; 
+      cursor: pointer; 
+      text-align: center; 
+      box-shadow: 0 4px 12px rgba(242, 101, 34, 0.3);
+      transition: all 0.2s;
+    }
+    .btn:hover { 
+      background: linear-gradient(90deg, #e44d00 0%, #f26522 100%); 
+      box-shadow: 0 6px 16px rgba(242, 101, 34, 0.4);
+    }
+    .btn:disabled {
+      background: #ccc;
+      box-shadow: none;
+      cursor: not-allowed;
+    }
+    .result { display: none; text-align: center; padding: 10px 0; }
+    /* 受付番号の大文字表記 */
+    .ticket-num { 
+      font-size: 54px; 
+      font-weight: 900; 
+      color: #f26522; 
+      margin: 15px 0; 
+      letter-spacing: -1px;
+    }
+    /* ステータスボックスの調整 */
+    .status-box { 
+      padding: 16px; 
+      border-radius: 10px; 
+      font-size: 18px; 
+      font-weight: bold; 
+      margin-bottom: 20px; 
+    }
+    .status-waiting { 
+      background-color: #fff3cd; 
+      color: #856404; 
+      border: 1px solid #ffeeba;
+    }
+    .status-calling { 
+      background-color: #fdf2ec; 
+      color: #e44d00; 
+      border: 2px solid #f26522; 
+      animation: pulse 2s infinite; 
+    }
     @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.02); } 100% { transform: scale(1); } }
+    #instructionText { line-height: 1.6; color: #555; }
   </style>
 </head>
 <body>
@@ -62,7 +160,7 @@
   
   <div id="resultScreen" class="result">
     <div id="statusMessage" class="status-box status-waiting">⏳ まもなく順番です</div>
-    <div style="color: #666; font-size: 14px;">あなたの受付番号</div>
+    <div style="color: #666; font-size: 14px; font-weight: bold;">あなたの受付番号</div>
     <div id="ticketNumber" class="ticket-num">--番</div>
     <p id="instructionText">順番が近づくまで、お店の付近でお待ちください。<br><span style="font-size:12px; color:#999;">※LINEへの通知をオンにしている場合、メッセージが届きます。</span></p>
   </div>
@@ -72,14 +170,13 @@
   var myNumber = null;
   var userLineId = null;
 
-  // 💡 LINEの中で開かれたら自動で起動する仕組み（Googleの邪魔が入りません）
   window.onload = function() {
     liff.init({ liffId: "2010495808-71rxBAfN" }) 
       .then(function() {
         if (liff.isLoggedIn()) {
           liff.getProfile().then(function(profile) {
             userLineId = profile.userId; 
-            document.getElementById('userName').value = profile.displayName; // お名前自動入力
+            document.getElementById('userName').value = profile.displayName;
           });
         } else {
           liff.login(); 
@@ -90,7 +187,7 @@
       });
   };
 
-  // ★ご自身のGASウェブアプリのURLをここに貼り付けてください
+  // 前回の正常に繋がった最新のGAS URLをここに固定しています
   var GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbz4-pi84iDRCQtdgLdCk3Zh6XUXaNsBbFG15LUo-GQHQ5CTbV_xEGa6Cs6HT3-m3A14/exec";
 
   function submitForm() {
@@ -101,7 +198,6 @@
     document.querySelector('.btn').innerText = '登録中...';
     document.querySelector('.btn').disabled = true;
     
-    // GASへデータをインターネット経由で安全に送信する
     fetch(GAS_WEB_APP_URL, {
       method: 'POST',
       body: JSON.stringify({
@@ -144,12 +240,13 @@
         if (response.status === '呼び出し中') {
           msgBox.innerText = '📢 お呼び出し中！店内へお越しください';
           msgBox.className = 'status-box status-calling';
-          text.innerHTML = '<strong style="color:#e60012;">店員にこの画面を見せてご案内を受けてください。</strong>';
+          text.innerHTML = '<strong style="color:#e44d00; font-size:16px;">店員にこの画面を見せてご案内を受けてください。</strong>';
         } else if (response.status === 'ご案内済み') {
           msgBox.innerText = '✅ ご案内が完了しました';
           msgBox.className = 'status-box';
           msgBox.style.backgroundColor = '#e2e3e5';
           msgBox.style.color = '#383d41';
+          msgBox.style.border = 'none';
           text.innerText = 'ご来店ありがとうございました！';
         }
       }
