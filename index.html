@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <title>楊國福 川崎店 順番待ち</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <style>
+    body { 
+      font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', sans-serif; 
+      background: linear-gradient(135deg, #f26522 0%, #e44d00 100%); 
+      margin: 0; 
+      padding: 20px; 
+      color: #333;
+      min-height: 100vh;
+      box-sizing: border-box;
+    }
+    .container { 
+      max-width: 400px; 
+      margin: 10px auto 0 auto; 
+      background: #ffffff; 
+      padding: 25px 25px; 
+      border-radius: 16px; 
+      box-shadow: 0 10px 25px rgba(0,0,0,0.15); 
+    }
+    .logo-container {
+      text-align: center;
+      margin-bottom: 5px;
+    }
+    .logo-img {
+      width: 140px; 
+      height: auto;
+      display: block;
+      margin: 0 auto;
+    }
+    .store-sub { 
+      text-align: center; 
+      color: #666; 
+      font-size: 14px; 
+      margin-bottom: 25px; 
+      font-weight: bold;
+    }
+    .form-group { margin-bottom: 22px; }
+    label { 
+      display: block; 
+      font-weight: bold; 
+      margin-bottom: 10px; 
+      font-size: 14px; 
+      color: #444;
+    }
+    /* テキスト入力と数値入力のスタイル共通化 */
+    input[type="text"], input[type="number"] { 
+      width: 100%; 
+      padding: 14px; 
+      border: 2px solid #eee; 
+      border-radius: 8px; 
+      box-sizing: border-box; 
+      font-size: 16px; 
+      background-color: #fcfcfc;
+      transition: border-color 0.2s;
+    }
+    input[type="text"]:focus, input[type="number"]:focus {
+      border-color: #f26522;
+      outline: none;
+      background-color: #fff;
+    }
+    .btn { 
+      display: block; 
+      width: 100%; 
+      padding: 16px; 
+      background: linear-gradient(90deg, #f26522 0%, #ff7a38 100%); 
+      color: white; 
+      border: none; 
+      border-radius: 8px; 
+      font-size: 18px; 
+      font-weight: bold; 
+      cursor: pointer; 
+      text-align: center; 
+      box-shadow: 0 4px 12px rgba(242, 101, 34, 0.3);
+      transition: all 0.2s;
+      margin-top: 10px;
+    }
+    .btn:hover { 
+      background: linear-gradient(90deg, #e44d00 0%, #f26522 100%); 
+      box-shadow: 0 6px 16px rgba(242, 101, 34, 0.4);
+    }
+    .btn:disabled {
+      background: #ccc;
+      box-shadow: none;
+      cursor: not-allowed;
+    }
+    .result { display: none; text-align: center; padding: 10px 0; }
+    .ticket-num { 
+      font-size: 54px; 
+      font-weight: 900; 
+      color: #f26522; 
+      margin: 15px 0; 
+      letter-spacing: -1px;
+    }
+    .status-box { 
+      padding: 16px; 
+      border-radius: 10px; 
+      font-size: 18px; 
+      font-weight: bold; 
+      margin-bottom: 20px; 
+    }
+    .status-waiting { 
+      background-color: #fff3cd; 
+      color: #856404; 
+      border: 1px solid #ffeeba;
+    }
+    .status-calling { 
+      background-color: #fdf2ec; 
+      color: #e44d00; 
+      border: 2px solid #f26522; 
+      animation: pulse 2s infinite; 
+    }
+    @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.02); } 100% { transform: scale(1); } }
+    #instructionText { line-height: 1.6; color: #555; }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <div class="logo-container">
+    <img src="https://globaloceankanri-blip.github.io/reception/image_5.png" alt="楊國福 麻辣湯" class="logo-img">
+  </div>
+  <div class="store-sub">川崎店 順番待ち受付</div>
+  
+  <div id="inputForm">
+    <div class="form-group">
+      <label for="userName">お名前</label>
+      <input type="text" id="userName" placeholder="例：ヤマダ">
+    </div>
+    
+    <div class="form-group">
+      <label for="adultCount">大人（中学生以上）の人数</label>
+      <!-- 選択式から直接入力に変更。inputmode="numeric"でスマホの数字キーボードを強制起動 -->
+      <input type="number" id="adultCount" value="1" min="1" inputmode="numeric" placeholder="例：2">
+    </div>
+
+    <!-- お子様の人数（裏側処理用） -->
+    <input type="hidden" id="childCount" value="0">
+    
+    <button class="btn" onclick="submitForm()">順番待ちを登録する</button>
+  </div>
+  
+  <div id="resultScreen" class="result">
+    <div id="statusMessage" class="status-box status-waiting">⏳ まもなく順番です</div>
+    <div style="color: #666; font-size: 14px; font-weight: bold;">あなたの受付番号</div>
+    <div id="ticketNumber" class="ticket-num">--番</div>
+    <p id="instructionText">順番が近づくまで、お店の付近でお待ちください。<br><span style="font-size:12px; color:#999;">※LINEへの通知をオンにしている場合、メッセージが届きます。</span></p>
+  </div>
+</div>
+
+<script>
+  var myNumber = null;
+  var userLineId = null;
+
+  window.onload = function() {
+    liff.init({ liffId: "2010495808-71rxBAfN" }) 
+      .then(function() {
+        if (liff.isLoggedIn()) {
+          liff.getProfile().then(function(profile) {
+            userLineId = profile.userId; 
+            document.getElementById('userName').value = profile.displayName;
+          });
+        } else {
+          liff.login(); 
+        }
+      })
+      .catch(function(err) {
+        console.log("LIFF初期化エラー:", err);
+      });
+  };
+
+  var GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbz4-pi84iDRCQtdgLdCk3Zh6XUXaNsBbFG15LUo-GQHQ5CTbV_xEGa6Cs6HT3-m3A14/exec";
+
+  function submitForm() {
+    var name = document.getElementById('userName').value || '指定なし';
+    var adult = document.getElementById('adultCount').value || '1';
+    var child = document.getElementById('childCount').value;
+    
+    document.querySelector('.btn').innerText = '登録中...';
+    document.querySelector('.btn').disabled = true;
+    
+    fetch(GAS_WEB_APP_URL, {
+      method: 'POST',
+      body: JSON.stringify({
+        action: 'register',
+        name: name,
+        adult: adult,
+        child: child,
+        lineUserId: userLineId
+      })
+    })
+    .then(response => response.json())
+    .then(response => {
+      if(response.success) {
+        myNumber = response.number;
+        document.getElementById('inputForm').style.display = 'none';
+        document.getElementById('ticketNumber').innerText = myNumber + '番';
+        document.getElementById('resultScreen').style.display = 'block';
+        
+        setInterval(startStatusCheck, 5000);
+      }
+    });
+  }
+
+  function startStatusCheck() {
+    if (!myNumber) return;
+    
+    fetch(GAS_WEB_APP_URL, {
+      method: 'POST',
+      body: JSON.stringify({
+        action: 'checkStatus',
+        number: myNumber
+      })
+    })
+    .then(response => response.json())
+    .then(response => {
+      if (response.success) {
+        var msgBox = document.getElementById('statusMessage');
+        var text = document.getElementById('instructionText');
+        
+        if (response.status === '呼び出し中') {
+          msgBox.innerText = '📢 お呼び出し中！店内へお越しください';
+          msgBox.className = 'status-box status-calling';
+          text.innerHTML = '<strong style="color:#e44d00; font-size:16px;">店員にこの画面を見せてご案内を受けてください。</strong>';
+        } else if (response.status === 'ご案内済み') {
+          msgBox.innerText = '✅ ご案内が完了しました';
+          msgBox.className = 'status-box';
+          msgBox.style.backgroundColor = '#e2e3e5';
+          msgBox.style.color = '#383d41';
+          msgBox.style.border = 'none';
+          text.innerText = 'ご来店ありがとうございました！';
+        }
+      }
+    });
+  }
+</script>
+
+</body>
+</html>
