@@ -4,15 +4,22 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>順番待ち受付 - 楊國福 川崎店</title>
-  <!-- LINEのシステムと連携するための魔法のタグ -->
+  <!-- LINEのシステムと連携するためのタグ -->
   <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
   <style>
     body { font-family: 'Helvetica Neue', Arial, sans-serif; background-color: #f5f5f5; margin: 0; padding: 20px; }
     .container { background-color: white; padding: 30px 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); width: 100%; max-width: 400px; margin: 0 auto; box-sizing: border-box;}
+    
+    /* ▼ ロゴ用のスタイル */
+    .logo-img { display: block; margin: 0 auto 15px; width: 120px; height: auto; border-radius: 50%; }
+    
     h1 { text-align: center; color: #e65100; font-size: 24px; margin-top: 0; margin-bottom: 20px; }
     .form-group { margin-bottom: 20px; }
     label { display: block; font-size: 18px; font-weight: bold; margin-bottom: 12px; color: #333; text-align: center;}
-    select { width: 100%; padding: 15px; font-size: 18px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; text-align: center;}
+    
+    /* ▼ 入力欄のデザイン（大きく中央揃えに） */
+    input[type="number"] { width: 100%; padding: 15px; font-size: 28px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; text-align: center; }
+    
     .btn { width: 100%; padding: 18px; font-size: 20px; font-weight: bold; color: white; background-color: #06C755; border: none; border-radius: 8px; cursor: pointer; transition: background-color 0.3s; margin-top: 10px;}
     .btn:active { background-color: #05a847; }
     #loading, #success, #error { display: none; text-align: center; margin-top: 15px; font-weight: bold; }
@@ -20,7 +27,6 @@
     #success { color: #06C755; }
     #error { color: red; }
     #profile-area { text-align: center; margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid #eee; }
-    #profile-img { width: 60px; height: 60px; border-radius: 50%; margin-bottom: 10px; }
     #profile-name { font-size: 18px; font-weight: bold; color: #333; }
     .ticket-display { display: none; text-align: center; padding: 20px; background: #fff3e0; border-radius: 8px; margin-top: 20px;}
     .ticket-display h2 { margin: 0; color: #e65100; font-size: 20px;}
@@ -30,26 +36,23 @@
 </head>
 <body>
   <div class="container" id="main-container">
+    
+    <!-- ▼ エラーになるプロフィール画像の代わりに、店舗ロゴを表示 -->
+    <img src="logo.png" alt="楊國福ロゴ" class="logo-img">
+    
     <h1>楊國福 川崎店<br>順番待ち受付</h1>
     
-    <!-- LINEのアイコンと名前が表示されるエリア -->
+    <!-- LINEの名前だけ表示されるエリア -->
     <div id="profile-area" style="display: none;">
-      <img id="profile-img" src="" alt="profile">
       <div id="profile-name"></div>
     </div>
 
     <!-- 入力フォーム -->
     <div id="form-area" style="display: none;">
       <div class="form-group">
-        <label for="people">ご来店人数</label>
-        <select id="people">
-          <option value="1">1名</option>
-          <option value="2">2名</option>
-          <option value="3">3名</option>
-          <option value="4">4名</option>
-          <option value="5">5名</option>
-          <option value="6">6名以上</option>
-        </select>
+        <label for="people">ご来店人数を入力してください</label>
+        <!-- ▼ 手入力用のテンキーを表示 -->
+        <input type="number" id="people" min="1" pattern="\d*" placeholder="例: 2">
       </div>
       <button class="btn" id="submitBtn" onclick="registerLineQueue()">順番待ちに登録する</button>
     </div>
@@ -69,29 +72,26 @@
   </div>
 
   <script>
-    // ▼ 今回発行していただいたGASのURL ▼
     const GAS_URL = "https://script.google.com/macros/s/AKfycbzMskWCJ9HQ3Pk4DlkdIUQX91_PxQbVrB_Q-HYKsLcLu690VDWjo3rhFeSOPvniGwk5/exec";
     
-    // ⚠️【必須変更箇所】お手持ちのLIFF IDをここに貼り付けてください
+    // ⚠️【注意】コードを丸ごと書き換えるため、もう一度ご自身のLIFF IDを貼り付けてください！
     const LIFF_ID = "2010495808-71rxBAfN";
     
     let lineProfile = null;
 
-    // 画面が開かれたときに最初に動く処理（LINEにログイン）
     async function initializeLiff() {
       document.getElementById('loading').style.display = 'block';
       try {
         await liff.init({ liffId: LIFF_ID });
         if (liff.isLoggedIn()) {
           lineProfile = await liff.getProfile();
-          document.getElementById('profile-img').src = lineProfile.pictureUrl || 'https://via.placeholder.com/60';
+          
+          // 名前だけをセットして表示（画像取得は削除）
           document.getElementById('profile-name').innerText = lineProfile.displayName + " 様";
           document.getElementById('profile-area').style.display = 'block';
           
-          // すでに順番待ちをしているか裏側に確認しにいく
           checkCurrentStatus(lineProfile.userId);
         } else {
-          // LINEの外で開かれた場合はLINEログイン画面へ飛ばす
           liff.login();
         }
       } catch (err) {
@@ -102,7 +102,6 @@
       }
     }
 
-    // すでに「待ち」状態かどうかをチェックする
     async function checkCurrentStatus(userId) {
        try {
         const response = await fetch(GAS_URL, {
@@ -118,10 +117,8 @@
         document.getElementById('loading').style.display = 'none';
 
         if(result.isWaiting) {
-           // 待っている場合は受付番号を表示して、入力フォームは隠す
            showTicket(result.ticketNo);
         } else {
-           // 待っていない場合は入力フォームを表示する
            document.getElementById('form-area').style.display = 'block';
         }
        } catch (error) {
@@ -131,7 +128,6 @@
        }
     }
 
-    // 「順番待ちに登録する」ボタンが押されたときの処理
     async function registerLineQueue() {
       if (!lineProfile) {
         alert("LINEの情報が取得できていません。");
@@ -140,6 +136,12 @@
 
       const btn = document.getElementById('submitBtn');
       const peopleVal = document.getElementById('people').value;
+      
+      // ▼【安全機能】空欄や「0」が入力された場合はストップする
+      if (!peopleVal || peopleVal < 1) {
+        alert("人数を正しく入力してください。");
+        return;
+      }
       
       btn.disabled = true;
       document.getElementById('loading').innerText = "処理中...";
@@ -174,7 +176,6 @@
            document.getElementById('success').style.display = 'block';
            document.getElementById('form-area').style.display = 'none';
            
-           // 1.5秒後に完了メッセージを消して受付番号を表示する
            setTimeout(() => {
              document.getElementById('success').style.display = 'none';
              showTicket(result.ticketNo);
@@ -196,7 +197,6 @@
         document.getElementById('ticket-area').style.display = 'block';
     }
 
-    // 画面が読み込まれたら自動でLINE連携スタート
     window.onload = initializeLiff;
   </script>
 </body>
