@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>順番待ち受付 - 楊國福 川崎店</title>
+  <!-- LINEのシステムと連携するための魔法のタグ -->
+  <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <style>
+    body { font-family: 'Helvetica Neue', Arial, sans-serif; background-color: #f5f5f5; margin: 0; padding: 20px; }
+    .container { background-color: white; padding: 30px 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); width: 100%; max-width: 400px; margin: 0 auto; box-sizing: border-box;}
+    h1 { text-align: center; color: #e65100; font-size: 24px; margin-top: 0; margin-bottom: 20px; }
+    .form-group { margin-bottom: 20px; }
+    label { display: block; font-size: 18px; font-weight: bold; margin-bottom: 12px; color: #333; text-align: center;}
+    select { width: 100%; padding: 15px; font-size: 18px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; text-align: center;}
+    .btn { width: 100%; padding: 18px; font-size: 20px; font-weight: bold; color: white; background-color: #06C755; border: none; border-radius: 8px; cursor: pointer; transition: background-color 0.3s; margin-top: 10px;}
+    .btn:active { background-color: #05a847; }
+    #loading, #success, #error { display: none; text-align: center; margin-top: 15px; font-weight: bold; }
+    #loading { color: #e65100; }
+    #success { color: #06C755; }
+    #error { color: red; }
+    #profile-area { text-align: center; margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid #eee; }
+    #profile-img { width: 60px; height: 60px; border-radius: 50%; margin-bottom: 10px; }
+    #profile-name { font-size: 18px; font-weight: bold; color: #333; }
+    .ticket-display { display: none; text-align: center; padding: 20px; background: #fff3e0; border-radius: 8px; margin-top: 20px;}
+    .ticket-display h2 { margin: 0; color: #e65100; font-size: 20px;}
+    .ticket-display .number { font-size: 45px; font-weight: bold; color: #333; margin: 15px 0;}
+    .close-btn { background-color: #666; }
+  </style>
+</head>
+<body>
+  <div class="container" id="main-container">
+    <h1>楊國福 川崎店<br>順番待ち受付</h1>
+    
+    <!-- LINEのアイコンと名前が表示されるエリア -->
+    <div id="profile-area" style="display: none;">
+      <img id="profile-img" src="" alt="profile">
+      <div id="profile-name"></div>
+    </div>
+
+    <!-- 入力フォーム -->
+    <div id="form-area" style="display: none;">
+      <div class="form-group">
+        <label for="people">ご来店人数</label>
+        <select id="people">
+          <option value="1">1名</option>
+          <option value="2">2名</option>
+          <option value="3">3名</option>
+          <option value="4">4名</option>
+          <option value="5">5名</option>
+          <option value="6">6名以上</option>
+        </select>
+      </div>
+      <button class="btn" id="submitBtn" onclick="registerLineQueue()">順番待ちに登録する</button>
+    </div>
+
+    <!-- 処理中のメッセージ -->
+    <div id="loading">状況を確認しています...</div>
+    <div id="success">受付完了しました！</div>
+    <div id="error">エラーが発生しました。</div>
+
+    <!-- 完了後の受付番号表示エリア -->
+    <div id="ticket-area" class="ticket-display">
+      <h2>あなたの受付番号</h2>
+      <div class="number" id="display-ticket-no">- 番</div>
+      <p style="font-size: 14px; color: #555; margin-bottom: 20px;">順番が近づきましたら、<br>LINEのメッセージでお知らせします。</p>
+      <button class="btn close-btn" onclick="liff.closeWindow()">画面を閉じる</button>
+    </div>
+  </div>
+
+  <script>
+    // ▼ 今回発行していただいたGASのURL ▼
+    const GAS_URL = "https://script.google.com/macros/s/AKfycbzMskWCJ9HQ3Pk4DlkdIUQX91_PxQbVrB_Q-HYKsLcLu690VDWjo3rhFeSOPvniGwk5/exec";
+    
+    // ⚠️【必須変更箇所】お手持ちのLIFF IDをここに貼り付けてください
+    const LIFF_ID = "【ここにLIFF_IDを貼り付けてください】";
+    
+    let lineProfile = null;
+
+    // 画面が開かれたときに最初に動く処理（LINEにログイン）
+    async function initializeLiff() {
+      document.getElementById('loading').style.display = 'block';
+      try {
+        await liff.init({ liffId: LIFF_ID });
+        if (liff.isLoggedIn()) {
+          lineProfile = await liff.getProfile();
+          document.getElementById('profile-img').src = lineProfile.pictureUrl || 'https://via.placeholder.com/60';
+          document.getElementById('profile-name').innerText = lineProfile.displayName + " 様";
+          document.getElementById('profile-area').style.display = 'block';
+          
+          // すでに順番待ちをしているか裏側に確認しにいく
+          checkCurrentStatus(lineProfile.userId);
+        } else {
+          // LINEの外で開かれた場合はLINEログイン画面へ飛ばす
+          liff.login();
+        }
+      } catch (err) {
+        console.error('LIFF Initialization failed', err);
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('error').innerText = "LINE連携に失敗しました。LINEアプリから再度お試しください。";
+        document.getElementById('error').style.display = 'block';
+      }
+    }
+
+    // すでに「待ち」状態かどうかをチェックする
+    async function checkCurrentStatus(userId) {
+       try {
+        const response = await fetch(GAS_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: new URLSearchParams({
+            'action': 'checkStatus',
+            'lineUserId': userId
+          })
+        });
+        const result = await response.json();
+        
+        document.getElementById('loading').style.display = 'none';
+
+        if(result.isWaiting) {
+           // 待っている場合は受付番号を表示して、入力フォームは隠す
+           showTicket(result.ticketNo);
+        } else {
+           // 待っていない場合は入力フォームを表示する
+           document.getElementById('form-area').style.display = 'block';
+        }
+       } catch (error) {
+         console.error("Check status error:", error);
+         document.getElementById('loading').style.display = 'none';
+         document.getElementById('form-area').style.display = 'block'; 
+       }
+    }
+
+    // 「順番待ちに登録する」ボタンが押されたときの処理
+    async function registerLineQueue() {
+      if (!lineProfile) {
+        alert("LINEの情報が取得できていません。");
+        return;
+      }
+
+      const btn = document.getElementById('submitBtn');
+      const peopleVal = document.getElementById('people').value;
+      
+      btn.disabled = true;
+      document.getElementById('loading').innerText = "処理中...";
+      document.getElementById('loading').style.display = 'block';
+      document.getElementById('error').style.display = 'none';
+
+      const now = new Date();
+      const timeStr = now.getFullYear() + "/" + 
+                      String(now.getMonth() + 1).padStart(2, '0') + "/" + 
+                      String(now.getDate()).padStart(2, '0') + " " + 
+                      String(now.getHours()).padStart(2, '0') + ":" + 
+                      String(now.getMinutes()).padStart(2, '0');
+
+      try {
+        const response = await fetch(GAS_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: new URLSearchParams({
+            'action': 'registerLine',
+            'name': lineProfile.displayName,
+            'lineUserId': lineProfile.userId,
+            'adult': peopleVal, // 人数を送信
+            'child': '0',
+            'time': timeStr
+          })
+        });
+
+        const result = await response.json();
+        
+        if (result.ticketNo) {
+           document.getElementById('loading').style.display = 'none';
+           document.getElementById('success').style.display = 'block';
+           document.getElementById('form-area').style.display = 'none';
+           
+           // 1.5秒後に完了メッセージを消して受付番号を表示する
+           setTimeout(() => {
+             document.getElementById('success').style.display = 'none';
+             showTicket(result.ticketNo);
+           }, 1500);
+
+        } else {
+           throw new Error("Ticket generation failed");
+        }
+      } catch (error) {
+        console.error("Registration error:", error);
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('error').style.display = 'block';
+        btn.disabled = false;
+      }
+    }
+
+    function showTicket(ticketNo) {
+        document.getElementById('display-ticket-no').innerText = ticketNo + " 番";
+        document.getElementById('ticket-area').style.display = 'block';
+    }
+
+    // 画面が読み込まれたら自動でLINE連携スタート
+    window.onload = initializeLiff;
+  </script>
+</body>
+</html>
