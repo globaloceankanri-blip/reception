@@ -2,59 +2,65 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>【スタッフ用】呼び出し管理アプリ</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>スタッフ管理アプリ - 楊國福 川崎店</title>
   <style>
-    body { font-family: 'Helvetica Neue', Arial, sans-serif; background-color: #eceff1; margin: 0; padding: 0; }
-    .header { background-color: #37474f; color: white; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100;}
-    .header h1 { margin: 0; font-size: 18px; }
-    .refresh-btn { background-color: #00bcd4; color: white; border: none; padding: 8px 15px; border-radius: 5px; font-weight: bold; cursor: pointer; }
-    .refresh-btn:active { background-color: #00acc1; }
-    
-    .container { padding: 15px; max-width: 600px; margin: 0 auto; }
-    .status-msg { text-align: center; color: #666; margin-top: 20px; font-weight: bold; }
-    
-    .card { background-color: white; border-radius: 10px; padding: 15px; margin-bottom: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); display: flex; justify-content: space-between; align-items: center; border-left: 6px solid #e65100; }
-    .card-left { flex-grow: 1; }
-    
-    .time { font-size: 13px; color: #777; margin-bottom: 4px; }
-    .ticket { font-size: 24px; font-weight: bold; color: #333; margin-bottom: 4px; }
-    .info { font-size: 15px; color: #555; }
-    
-    .badge-line { background-color: #e8f5e9; color: #2e7d32; font-size: 12px; padding: 2px 6px; border-radius: 4px; border: 1px solid #c8e6c9; margin-left: 5px; vertical-align: middle;}
-    .badge-paper { background-color: #fff3e0; color: #e65100; font-size: 12px; padding: 2px 6px; border-radius: 4px; border: 1px solid #ffe0b2; margin-left: 5px; vertical-align: middle;}
-    
-    .call-btn { background-color: #e65100; color: white; border: none; padding: 15px 20px; font-size: 16px; font-weight: bold; border-radius: 8px; cursor: pointer; min-width: 100px; text-align: center; }
-    .call-btn:active { background-color: #cc4800; }
-    .call-btn:disabled { background-color: #ccc; cursor: not-allowed; }
+    body { font-family: 'Helvetica Neue', Arial, sans-serif; background-color: #f5f5f5; margin: 0; padding: 15px; color: #333; }
+    h1 { text-align: center; color: #e65100; font-size: 22px; margin-bottom: 20px; }
+    .section-title { font-size: 18px; font-weight: bold; margin: 20px 0 10px; color: #444; border-bottom: 2px solid #ccc; padding-bottom: 5px; }
+    .card { background: white; padding: 15px; border-radius: 8px; margin-bottom: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); display: flex; justify-content: space-between; align-items: center; }
+    .info { font-size: 16px; }
+    .info .num { font-size: 22px; font-weight: bold; color: #e65100; }
+    .info .sub { font-size: 14px; color: #666; margin-top: 4px; }
+    .btn { padding: 10px 18px; font-size: 16px; font-weight: bold; color: white; background-color: #e65100; border: none; border-radius: 6px; cursor: pointer; }
+    .btn:active { background-color: #cc4800; }
+    .btn-complete { background-color: #2e7d32; }
+    .btn-complete:active { background-color: #1b5e20; }
+    .empty { text-align: center; color: #888; font-size: 15px; padding: 20px; background: #fff; border-radius: 8px; }
   </style>
 </head>
 <body>
-  <div class="header">
-    <h1>順番待ち呼び出しアプリ</h1>
-    <button class="refresh-btn" onclick="fetchWaitlist()">🔄 更新</button>
+
+  <h1>楊國福 川崎店 スタッフ管理</h1>
+
+  <!-- 待ち組リスト -->
+  <div class="section-title">⏳ 待ちのお客様</div>
+  <div id="waitlist-container">
+    <div class="empty">読み込み中...</div>
   </div>
 
-  <div class="container">
-    <div id="loading" class="status-msg">リストを読み込んでいます...</div>
-    <div id="list-container"></div>
+  <!-- 呼出中リスト（案内済みボタン付き） -->
+  <div class="section-title">📢 呼出中のお客様</div>
+  <div id="calling-container">
+    <div class="empty">現在呼び出し中の方はいません</div>
   </div>
 
   <script>
-    // ⚠️【必須変更箇所】あなたのGASのURLを貼り付けてください
+    // ⚠️ご自身のGASのURLに書き換えてください
     const GAS_URL = "https://script.google.com/macros/s/AKfycbzMskWCJ9HQ3Pk4DlkdIUQX91_PxQbVrB_Q-HYKsLcLu690VDWjo3rhFeSOPvniGwk5/exec";
-    
-    // 画面を開いたときにリストを取得
-    window.onload = fetchWaitlist;
 
-    async function fetchWaitlist() {
-      const container = document.getElementById('list-container');
-      const loading = document.getElementById('loading');
-      
-      container.innerHTML = "";
-      loading.style.display = 'block';
-      loading.innerText = "リストを読み込んでいます...";
+    // 3秒に1回、自動で最新のリストを取得
+    setInterval(loadData, 3000);
+    window.onload = loadData;
 
+    async function loadData() {
+      try {
+        // 待ちリストと呼出中リストを同時に取得
+        const response = await fetch(GAS_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: new URLSearchParams({ 'action': 'getAllLists' }) // または個別に取得
+        });
+        
+        // シンプルに別々に取得する安全な設計にします
+        loadWaitlist();
+        loadCallinglist();
+      } catch (error) {
+        console.error("データ取得エラー:", error);
+      }
+    }
+
+    async function loadWaitlist() {
       try {
         const response = await fetch(GAS_URL, {
           method: 'POST',
@@ -62,50 +68,67 @@
           body: new URLSearchParams({ 'action': 'getWaitlist' })
         });
         const result = await response.json();
-        
-        loading.style.display = 'none';
+        const waitlist = result.waitlist || [];
+        const container = document.getElementById('waitlist-container');
 
-        if (result.waitlist && result.waitlist.length > 0) {
-          result.waitlist.forEach(item => {
-            container.appendChild(createCard(item));
+        if (waitlist.length > 0) {
+          container.innerHTML = "";
+          waitlist.forEach(item => {
+            const card = document.createElement('div');
+            card.className = 'card';
+            card.innerHTML = `
+              <div class="info">
+                <span class="num">${item.ticketNo} 番</span> (${item.people}名様)<br>
+                <span class="sub">${item.name} ／ 受付: ${item.time}</span>
+              </div>
+              <button class="btn" onclick="callUser(${item.ticketNo})">呼び出す</button>
+            `;
+            container.appendChild(card);
           });
         } else {
-          loading.style.display = 'block';
-          loading.innerText = "現在、お待ちのお客様はいません。";
+          container.innerHTML = `<div class="empty">現在待ちのお客様はいません</div>`;
         }
-      } catch (error) {
-        console.error("Error:", error);
-        loading.innerText = "エラーが発生しました。更新ボタンを押してください。";
+      } catch (e) {
+        console.error(e);
       }
     }
 
-    function createCard(item) {
-      const isLine = item.lineId !== "iPad店頭（紙）";
-      const badgeHtml = isLine 
-        ? `<span class="badge-line">LINE受付</span>` 
-        : `<span class="badge-paper">店頭(紙)</span>`;
-      
-      const card = document.createElement('div');
-      card.className = 'card';
-      card.id = `card-${item.ticketNo}`;
-      
-      card.innerHTML = `
-        <div class="card-left">
-          <div class="time">受付: ${item.time}</div>
-          <div class="ticket">${item.ticketNo} 番 ${badgeHtml}</div>
-          <div class="info">${isLine ? item.name : '店頭のお客様'} / ${item.people}名</div>
-        </div>
-        <button class="call-btn" onclick="callUser('${item.ticketNo}', this, ${isLine})">呼び出す</button>
-      `;
-      return card;
+    async function loadCallinglist() {
+      try {
+        const response = await fetch(GAS_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: new URLSearchParams({ 'action': 'getCallingList' })
+        });
+        const result = await response.json();
+        const callingList = result.callingList || [];
+        const container = document.getElementById('calling-container');
+
+        if (callingList.length > 0) {
+          container.innerHTML = "";
+          callingList.forEach(item => {
+            const card = document.createElement('div');
+            card.className = 'card';
+            card.innerHTML = `
+              <div class="info">
+                <span class="num" style="color: #2e7d32;">${item.ticketNo} 番</span> (${item.people}名様)<br>
+                <span class="sub">${item.name}</span>
+              </div>
+              <button class="btn btn-complete" onclick="completeUser(${item.ticketNo})">案内済み</button>
+            `;
+            container.appendChild(card);
+          });
+        } else {
+          container.innerHTML = `<div class="empty">現在呼び出し中の方はいません</div>`;
+        }
+      } catch (e) {
+        console.error(e);
+      }
     }
 
-    async function callUser(ticketNo, btnElement, isLine) {
-      if(!confirm(`${ticketNo}番のお客様を呼び出しますか？`)) return;
-
-      btnElement.disabled = true;
-      btnElement.innerText = "処理中...";
-
+    // 呼び出しボタンを押したとき
+    async function callUser(ticketNo) {
+      if (!confirm(`${ticketNo}番のお客様を呼び出しますか？`)) return;
       try {
         const response = await fetch(GAS_URL, {
           method: 'POST',
@@ -113,25 +136,33 @@
           body: new URLSearchParams({ 'action': 'callUser', 'ticketNo': ticketNo })
         });
         const result = await response.json();
-        
         if (result.success) {
-          // 呼び出し成功したらカードの色を変えてフェードアウト
-          const card = document.getElementById(`card-${ticketNo}`);
-          card.style.opacity = "0.5";
-          btnElement.innerText = "呼出済";
-          
-          if(!isLine) {
-            alert(`【${ticketNo}番は紙発券のお客様です】\n店頭にて口頭でお呼び出しをお願いします！`);
-          }
+          loadData();
         } else {
           alert("エラー: " + result.error);
-          btnElement.disabled = false;
-          btnElement.innerText = "呼び出す";
         }
-      } catch (error) {
-        alert("通信エラーが発生しました。");
-        btnElement.disabled = false;
-        btnElement.innerText = "呼び出す";
+      } catch (e) {
+        alert("通信エラーが発生しました");
+      }
+    }
+
+    // 案内済みボタンを押したとき（リストから消す）
+    async function completeUser(ticketNo) {
+      if (!confirm(`${ticketNo}番のお客様の案内を完了（終了）しますか？`)) return;
+      try {
+        const response = await fetch(GAS_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: new URLSearchParams({ 'action': 'completeUser', 'ticketNo': ticketNo })
+        });
+        const result = await response.json();
+        if (result.success) {
+          loadData();
+        } else {
+          alert("エラー: " + result.error);
+        }
+      } catch (e) {
+        alert("通信エラーが発生しました");
       }
     }
   </script>
