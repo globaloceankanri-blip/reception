@@ -36,7 +36,6 @@
 
   <script>
     const GAS_URL = "https://script.google.com/macros/s/AKfycbzMskWCJ9HQ3Pk4DlkdIUQX91_PxQbVrB_Q-HYKsLcLu690VDWjo3rhFeSOPvniGwk5/exec";
-    const LOGO_URL = "https://globaloceankanri-blip.github.io/reception/logo.png";
     
     async function issueTicket() {
       const btn = document.getElementById('submitBtn');
@@ -90,45 +89,28 @@
     }
 
     function printReceipt(ticketNo, people, timeStr) {
-      // プリンターで綺麗に印刷するためのHTMLデザイン
-      const htmlText = 
-        `<html>` +
-        `<head>` +
-        `<meta charset="utf-8">` +
-        `<style>` +
-        `  body { text-align: center; font-family: sans-serif; padding: 10px; color: #000; }` +
-        `  h1 { font-size: 32px; margin-bottom: 5px; }` +
-        `  h2 { font-size: 20px; margin-top: 0; }` +
-        `  .ticket { font-size: 65px; font-weight: bold; margin: 15px 0; }` +
-        `  .info { font-size: 22px; text-align: left; padding-left: 15%; margin-top: 20px; margin-bottom: 20px; }` +
-        `  hr { border-top: 2px dashed #000; border-bottom: none; }` +
-        `  .notice { font-size: 18px; line-height: 1.4; }` +
-        `</style>` +
-        `</head>` +
-        `<body>` +
-        `  <img src="${LOGO_URL}" width="180" style="margin-bottom:10px;"><br>` +
-        `  <h1>楊國福 川崎店</h1>` +
-        `  <h2>― 順番受付整理券 ―</h2>` +
-        `  <hr>` +
-        `  <p style="font-size: 20px; margin-bottom: 0;">あなたの受付番号</p>` +
-        `  <div class="ticket">${ticketNo} 番</div>` +
-        `  <hr>` +
-        `  <div class="info">` +
-        `    受付日時 : ${timeStr}<br>` +
-        `    ご人数   : ${people}名` +
-        `  </div>` +
-        `  <p class="notice">順番が来ましたら番号でお呼びします。<br>店舗付近でお待ちください。</p><br>` +
-        `  <p class="notice" style="font-size: 16px;">※お呼び出し時にご不在の場合は<br>キャンセルとなる場合がございます。</p>` +
-        `</body>` +
-        `</html>`;
+      // 確実にプリンターが受け取れるテキスト形式のデザイン
+      const receiptText = 
+        `\n` +
+        `     楊國福 川崎店\n` +
+        `   ― 順番受付整理券 ―\n\n` +
+        `--------------------------------\n` +
+        `        あなたの受付番号\n` +
+        `           【 ${ticketNo} 番 】\n` +
+        `--------------------------------\n\n` +
+        `  受付日時 : ${timeStr}\n` +
+        `  ご人数   : ${people}名\n\n` +
+        ` 順番が来ましたら番号でお呼びします。\n` +
+        ` 店舗付近でお待ちください。\n\n` +
+        ` ※お呼び出し時にご不在の場合は\n` +
+        ` キャンセルとなる場合がございます。\n\n\n`;
 
       const backUrl = encodeURIComponent(window.location.href);
-      const htmlEncoded = encodeURIComponent(htmlText);
+      const pdfStr = encodeURIComponent(receiptText);
       
-      // 正しい命令（nopreview）と、mC-Print3用のサイズ（size=3）を指定
-      const passPrntUrl = `starpassprnt://v1/print/nopreview?back=${backUrl}&html=${htmlEncoded}&size=3`;
+      // テキスト用のコマンド（current）を使用
+      const passPrntUrl = `starpassprnt://v1/print/current?back=${backUrl}&pdf=${pdfStr}&port=BT:mC-Print3`;
 
-      // アプリを呼び出して印刷
       window.location.href = passPrntUrl;
     }
   </script>
