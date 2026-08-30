@@ -7,16 +7,11 @@
   <style>
     body { font-family: 'Helvetica Neue', Arial, sans-serif; background-color: #fff3e0; margin: 0; padding: 20px; display: flex; justify-content: center; align-items: center; min-height: 100vh; touch-action: manipulation;}
     .container { background-color: white; padding: 40px 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 100%; max-width: 500px; box-sizing: border-box; }
-    
     .logo-img { display: block; margin: 0 auto 15px; width: 120px; height: auto; border-radius: 50%; }
-    
     h1 { text-align: center; color: #e65100; font-size: 26px; margin-top: 0; margin-bottom: 30px; line-height: 1.4; }
     .form-group { margin-bottom: 30px; }
     label { display: block; font-size: 20px; font-weight: bold; margin-bottom: 15px; color: #333; text-align: center; }
-    
-    /* ▼ 入力欄のデザイン（大きく中央揃えに） */
     input[type="number"] { width: 100%; padding: 15px; font-size: 28px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; text-align: center; }
-    
     .btn { width: 100%; padding: 20px; font-size: 22px; font-weight: bold; color: white; background-color: #e65100; border: none; border-radius: 8px; cursor: pointer; transition: background-color 0.3s; margin-top: 10px; }
     .btn:active { background-color: #cc4800; }
     #loading { display: none; text-align: center; font-size: 18px; color: #e65100; margin-top: 15px; font-weight: bold;}
@@ -25,14 +20,11 @@
 </head>
 <body>
   <div class="container">
-    <!-- 先ほどのリネームがうまくいっていれば logo.png で表示されます -->
     <img src="logo.png" alt="楊國福ロゴ" class="logo-img">
-    
     <h1>楊國福 川崎店<br>順番待ち店頭受付</h1>
     
     <div class="form-group">
       <label for="people">ご来店人数を入力してください</label>
-      <!-- ▼ 数字だけを入力できるテンキーを呼び出す設定 -->
       <input type="number" id="people" min="1" pattern="\d*" placeholder="例: 2">
     </div>
     
@@ -44,17 +36,13 @@
 
   <script>
     const GAS_URL = "https://script.google.com/macros/s/AKfycbzMskWCJ9HQ3Pk4DlkdIUQX91_PxQbVrB_Q-HYKsLcLu690VDWjo3rhFeSOPvniGwk5/exec";
-    
-    // プリンターが読み込む用のロゴURL
     const LOGO_URL = "https://globaloceankanri-blip.github.io/reception/logo.png";
     
     async function issueTicket() {
       const btn = document.getElementById('submitBtn');
       const loading = document.getElementById('loading');
-      
       const peopleVal = document.getElementById('people').value;
       
-      // ▼【安全機能】空欄や「0」が入力された場合はストップする
       if (!peopleVal || peopleVal < 1) {
         alert("人数を正しく入力してください。");
         return;
@@ -77,7 +65,7 @@
           body: new URLSearchParams({
             'action': 'registerIpad', 
             'name': '店頭受付のお客様',
-            'adult': peopleVal, // 打ち込まれた人数を送信
+            'adult': peopleVal,
             'child': '0',
             'time': timeStr
           })
@@ -97,35 +85,50 @@
       } finally {
         btn.disabled = false;
         loading.style.display = 'none';
-        document.getElementById('people').value = ""; // 次のお客様のために空欄に戻す
+        document.getElementById('people').value = ""; 
       }
     }
 
     function printReceipt(ticketNo, people, timeStr) {
-      const receiptText = 
-        `[align: center]` +
-        `[image: url ${LOGO_URL}; width 40%]\n\n` + 
-        `[font: medium][bold: on]楊國福 川崎店[bold: off]\n` +
-        `[font: small]― 順番受付整理券 ―\n\n` +
-        `--------------------------------\n` +
-        `[font: small]あなたの受付番号\n` +
-        `[font: large][bold: on] ${ticketNo} 番 [bold: off]\n` +
-        `--------------------------------\n\n` +
-        `[align: left]` +
-        `[font: small]` +
-        `  受付日時 : ${timeStr}\n` +
-        `  ご人数   : ${people}名\n\n` +
-        `[align: center]` +
-        `順番が来ましたら番号でお呼びします。\n` +
-        `店舗付近でお待ちください。\n\n` +
-        `※お呼び出し時にご不在の場合は\n` +
-        `キャンセルとなる場合がございます。\n\n` +
-        `[cut]`;
+      // プリンターで綺麗に印刷するためのHTMLデザイン
+      const htmlText = 
+        `<html>` +
+        `<head>` +
+        `<meta charset="utf-8">` +
+        `<style>` +
+        `  body { text-align: center; font-family: sans-serif; padding: 10px; color: #000; }` +
+        `  h1 { font-size: 32px; margin-bottom: 5px; }` +
+        `  h2 { font-size: 20px; margin-top: 0; }` +
+        `  .ticket { font-size: 65px; font-weight: bold; margin: 15px 0; }` +
+        `  .info { font-size: 22px; text-align: left; padding-left: 15%; margin-top: 20px; margin-bottom: 20px; }` +
+        `  hr { border-top: 2px dashed #000; border-bottom: none; }` +
+        `  .notice { font-size: 18px; line-height: 1.4; }` +
+        `</style>` +
+        `</head>` +
+        `<body>` +
+        `  <img src="${LOGO_URL}" width="180" style="margin-bottom:10px;"><br>` +
+        `  <h1>楊國福 川崎店</h1>` +
+        `  <h2>― 順番受付整理券 ―</h2>` +
+        `  <hr>` +
+        `  <p style="font-size: 20px; margin-bottom: 0;">あなたの受付番号</p>` +
+        `  <div class="ticket">${ticketNo} 番</div>` +
+        `  <hr>` +
+        `  <div class="info">` +
+        `    受付日時 : ${timeStr}<br>` +
+        `    ご人数   : ${people}名` +
+        `  </div>` +
+        `  <p class="notice">順番が来ましたら番号でお呼びします。<br>店舗付近でお待ちください。</p><br>` +
+        `  <p class="notice" style="font-size: 16px;">※お呼び出し時にご不在の場合は<br>キャンセルとなる場合がございます。</p>` +
+        `</body>` +
+        `</html>`;
 
       const backUrl = encodeURIComponent(window.location.href);
-      const pdfStr = encodeURIComponent(receiptText);
-      const passPrntUrl = `starpassprnt://v1/print/current?back=${backUrl}&pdf=${pdfStr}&port=BT:mC-Print3`;
+      const htmlEncoded = encodeURIComponent(htmlText);
+      
+      // 正しい命令（nopreview）と、mC-Print3用のサイズ（size=3）を指定
+      const passPrntUrl = `starpassprnt://v1/print/nopreview?back=${backUrl}&html=${htmlEncoded}&size=3`;
 
+      // アプリを呼び出して印刷
       window.location.href = passPrntUrl;
     }
   </script>
