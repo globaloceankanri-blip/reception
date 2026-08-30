@@ -71,9 +71,9 @@
         const currentNumbersStr = callingList.map(item => item.ticketNo).join(',');
         
         if (currentNumbersStr !== lastCalledNumbers && currentNumbersStr !== "") {
-          // 音声が有効化されている場合のみチャイムを鳴らす
+          // 音声が有効化されている場合のみチャイムを鳴らす（修正済み）
           if (isAudioEnabled) {
-            document.getElementById('chime'].play().catch(e => console.log("音声再生エラー:", e));
+            document.getElementById('chime').play().catch(e => console.log("音声再生エラー:", e));
           }
         }
         lastCalledNumbers = currentNumbersStr;
