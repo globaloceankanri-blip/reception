@@ -5,30 +5,30 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>お呼び出しモニター - 楊國福 川崎店</title>
   <style>
-    body { font-family: 'Helvetica Neue', Arial, sans-serif; background-color: #1a1a1a; color: white; margin: 0; padding: 30px; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; box-sizing: border-box; overflow: hidden; cursor: pointer; }
-    h1 { font-size: 3.5vw; color: #ff9800; margin-bottom: 20px; text-align: center; }
+    body { font-family: 'Helvetica Neue', Arial, sans-serif; background-color: #1a1a1a; color: white; margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; box-sizing: border-box; overflow: hidden; }
+    h1 { font-size: 3vw; color: #ff9800; margin-bottom: 15px; text-align: center; }
     .container { display: flex; gap: 30px; width: 100%; max-width: 1200px; justify-content: center; flex-wrap: wrap; }
-    .card { background-color: #333; border: 4px solid #ff9800; border-radius: 20px; padding: 40px; text-align: center; min-width: 350px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); animation: pulse 2s infinite; }
-    .label { font-size: 2.5vw; color: #ccc; margin-bottom: 10px; }
-    .number { font-size: 10vw; font-weight: bold; color: #fff; margin: 0; line-height: 1.2; }
-    .sub { font-size: 2vw; color: #ffeb3b; margin-top: 15px; }
-    .empty { font-size: 3vw; color: #666; margin-top: 50px; }
-    #sound-banner { position: fixed; top: 10px; background: #ff9800; color: #000; padding: 8px 20px; border-radius: 20px; font-weight: bold; font-size: 16px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); transition: opacity 0.5s; z-index: 999; }
+    .card { background-color: #333; border: 4px solid #ff9800; border-radius: 20px; padding: 30px; text-align: center; min-width: 320px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); animation: pulse 2s infinite; }
+    .label { font-size: 2vw; color: #ccc; margin-bottom: 10px; }
+    .number { font-size: 9vw; font-weight: bold; color: #fff; margin: 0; line-height: 1.2; }
+    .sub { font-size: 1.8vw; color: #ffeb3b; margin-top: 15px; }
+    .empty { font-size: 2.5vw; color: #666; margin-top: 40px; text-align: center; }
+    
+    /* 音声有効化ボタン */
+    #sound-btn { position: fixed; bottom: 20px; right: 20px; background: #ff9800; color: #000; padding: 15px 25px; border-radius: 30px; font-weight: bold; font-size: 18px; border: none; cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.5); z-index: 9999; }
     @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.02); } 100% { transform: scale(1.01); } }
   </style>
 </head>
 <body>
 
-  <!-- 音を有効にするための案内バナー -->
-  <div id="sound-banner">🔊 ここを1回タップすると音声（チャイム）が有効になります</div>
+  <!-- 音声有効化ボタン（邪魔にならない右下に配置） -->
+  <button id="sound-btn" onclick="enableAudio()">🔊 音声を有効にする（最初に押してください）</button>
 
   <h1>楊國福 川崎店 お呼び出し状況</h1>
   
   <div class="container" id="monitor-container">
-    <div class="empty">現在、お呼び出し中の番号はありません</div>
+    <div class="empty">順番にお呼びしております。店内でお待ちください。</div>
   </div>
-
-  <audio id="chime" src="https://actions.google.com/sounds/v1/ambiences/store_door_chime.ogg" preload="auto"></audio>
 
   <script>
     const GAS_URL = "https://script.google.com/macros/s/AKfycbzMskWCJ9HQ3Pk4DlkdIUQX91_PxQbVrB_Q-HYKsLcLu690VDWjo3rhFeSOPvniGwk5/exec";
@@ -36,22 +36,28 @@
     let lastCalledNumbers = "";
     let isAudioEnabled = false;
 
-    // 画面のどこかを最初にタップ・クリックした時に音をアンロックする
-    document.body.addEventListener('click', () => {
-      if (!isAudioEnabled) {
-        const chime = document.getElementById('chime');
-        chime.play().then(() => {
-          chime.pause();
-          chime.currentTime = 0;
-          isAudioEnabled = true;
-          const banner = document.getElementById('sound-banner');
-          if (banner) {
-            banner.style.opacity = '0';
-            setTimeout(() => banner.remove(), 500);
-          }
-        }).catch(e => console.log("音声アンロック失敗:", e));
+    // 音声を有効化するボタンの処理
+    function enableAudio() {
+      isAudioEnabled = true;
+      const btn = document.getElementById('sound-btn');
+      btn.style.display = 'none'; // ボタンを消す
+      
+      // テスト発話
+      speakText("音声案内が有効になりました。");
+    }
+
+    // ブラウザの音声合成で読み上げる関数
+    function speakText(text) {
+      if (!isAudioEnabled) return;
+      
+      // 音声合成が使えるか確認
+      if ('speechSynthesis' in window) {
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = 'ja-JP';
+        utterance.rate = 1.0; // 読み上げ速度
+        window.speechSynthesis.speak(utterance);
       }
-    });
+    }
 
     // 3秒に1回、自動でサーバーに確認しに行く
     setInterval(checkCalling, 3000);
@@ -70,12 +76,20 @@
 
         const currentNumbersStr = callingList.map(item => item.ticketNo).join(',');
         
-        if (currentNumbersStr !== lastCalledNumbers && currentNumbersStr !== "") {
-          // 音声が有効化されている場合のみチャイムを鳴らす（修正済み）
-          if (isAudioEnabled) {
-            document.getElementById('chime').play().catch(e => console.log("音声再生エラー:", e));
+        // 新しく呼ばれた番号があるかチェック
+        if (currentNumbersStr !== lastCalledNumbers && currentNumbersStr !== "" && lastCalledNumbers !== "") {
+          // 新規に追加された番号を探してアナウンスする
+          const oldList = lastCalledNumbers.split(',');
+          const newList = callingList.map(item => String(item.ticketNo));
+          
+          const newlyCalled = newList.filter(no => !oldList.includes(no));
+          
+          if (newlyCalled.length > 0 && isAudioEnabled) {
+            const targetNo = newlyCalled[newlyCalled.length - 1];
+            speakText(`お待たせいたしました。受付番号、${targetNo}番のお客様。カウンターまでお越しください。`);
           }
         }
+        
         lastCalledNumbers = currentNumbersStr;
 
         if (callingList.length > 0) {
