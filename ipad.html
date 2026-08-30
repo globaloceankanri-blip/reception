@@ -74,7 +74,7 @@
         const ticketNo = result.ticketNo;
 
         if (ticketNo) {
-           printReceipt(ticketNo, peopleVal, timeStr);
+           printReceiptImage(ticketNo, peopleVal, timeStr);
         } else {
            alert("受付番号の取得に失敗しました。");
         }
@@ -88,28 +88,57 @@
       }
     }
 
-    function printReceipt(ticketNo, people, timeStr) {
-      // 確実にプリンターが受け取れるテキスト形式のデザイン
-      const receiptText = 
-        `\n` +
-        `     楊國福 川崎店\n` +
-        `   ― 順番受付整理券 ―\n\n` +
-        `--------------------------------\n` +
-        `        あなたの受付番号\n` +
-        `           【 ${ticketNo} 番 】\n` +
-        `--------------------------------\n\n` +
-        `  受付日時 : ${timeStr}\n` +
-        `  ご人数   : ${people}名\n\n` +
-        ` 順番が来ましたら番号でお呼びします。\n` +
-        ` 店舗付近でお待ちください。\n\n` +
-        ` ※お呼び出し時にご不在の場合は\n` +
-        ` キャンセルとなる場合がございます。\n\n\n`;
+    function printReceiptImage(ticketNo, people, timeStr) {
+      // 画面上でレシートの画像を自動作成する
+      const canvas = document.createElement('canvas');
+      canvas.width = 576; // mC-Print3の標準幅
+      canvas.height = 400;
+      const ctx = canvas.getContext('2d');
+
+      // 背景を白に
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // 文字を描画
+      ctx.fillStyle = "#000000";
+      ctx.textAlign = "center";
+
+      ctx.font = "bold 28px sans-serif";
+      ctx.fillText("楊國福 川崎店", canvas.width / 2, 45);
+
+      ctx.font = "20px sans-serif";
+      ctx.fillText("― 順番受付整理券 ―", canvas.width / 2, 80);
+
+      ctx.font = "16px sans-serif";
+      ctx.fillText("----------------------------------------------------------------", canvas.width / 2, 105);
+
+      ctx.font = "18px sans-serif";
+      ctx.fillText("あなたの受付番号", canvas.width / 2, 140);
+
+      ctx.font = "bold 55px sans-serif";
+      ctx.fillText(ticketNo + " 番", canvas.width / 2, 205);
+
+      ctx.font = "16px sans-serif";
+      ctx.fillText("----------------------------------------------------------------", canvas.width / 2, 230);
+
+      ctx.textAlign = "left";
+      ctx.font = "18px sans-serif";
+      ctx.fillText(" 受付日時 : " + timeStr, 50, 270);
+      ctx.fillText(" ご人数   : " + people + "名", 50, 305);
+
+      ctx.textAlign = "center";
+      ctx.font = "16px sans-serif";
+      ctx.fillText("順番が来ましたら番号でお呼びします。", canvas.width / 2, 350);
+      ctx.fillText("店舗付近でお待ちください。", canvas.width / 2, 375);
+
+      // 画像データ（Base64）に変換
+      const base64Image = canvas.toDataURL('image/png');
 
       const backUrl = encodeURIComponent(window.location.href);
-      const pdfStr = encodeURIComponent(receiptText);
+      const imgStr = encodeURIComponent(base64Image);
       
-      // テキスト用のコマンド（current）を使用
-      const passPrntUrl = `starpassprnt://v1/print/current?back=${backUrl}&pdf=${pdfStr}&port=BT:mC-Print3`;
+      // 画像用の最も安定したPassPRNTコマンド
+      const passPrntUrl = `starpassprnt://v1/print/image?back=${backUrl}&image=${imgStr}&papier=true`;
 
       window.location.href = passPrntUrl;
     }
