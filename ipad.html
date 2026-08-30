@@ -16,6 +16,19 @@
     .btn:active { background-color: #cc4800; }
     #loading { display: none; text-align: center; font-size: 18px; color: #e65100; margin-top: 15px; font-weight: bold;}
     .notice { text-align: center; color: #666; font-size: 14px; margin-top: 25px; }
+
+    /* 印刷専用のデザイン（普段は非表示、印刷時だけ紙のサイズで出現） */
+    #print-area { display: none; }
+    @media print {
+      body * { visibility: hidden; }
+      #print-area, #print-area * { visibility: visible; }
+      #print-area { display: block; position: absolute; left: 0; top: 0; width: 100%; text-align: center; font-family: sans-serif; padding: 10px; color: #000; }
+      .p-title { font-size: 24px; font-weight: bold; margin-bottom: 5px; }
+      .p-sub { font-size: 16px; margin-bottom: 15px; }
+      .p-ticket { font-size: 45px; font-weight: bold; margin: 15px 0; }
+      .p-info { font-size: 16px; text-align: left; padding-left: 10%; margin: 15px 0; line-height: 1.5; }
+      .p-notice { font-size: 14px; line-height: 1.4; margin-top: 15px; }
+    }
   </style>
 </head>
 <body>
@@ -29,9 +42,29 @@
     </div>
     
     <button class="btn" id="submitBtn" onclick="issueTicket()">整理券を発行する</button>
-    <div id="loading">受付処理中... プリンターへ送信しています</div>
+    <div id="loading">受付処理中...</div>
     
     <div class="notice">※LINEをご利用でないお客様専用です</div>
+  </div>
+
+  <!-- 印刷用エリア -->
+  <div id="print-area">
+    <div class="p-title">楊國福 川崎店</div>
+    <div class="p-sub">― 順番受付整理券 ―</div>
+    <hr style="border-top: 1px dashed #000;">
+    <div style="font-size: 14px; margin-top: 10px;">あなたの受付番号</div>
+    <div class="p-ticket" id="p-ticket-no">1 番</div>
+    <hr style="border-top: 1px dashed #000;">
+    <div class="p-info" id="p-info-text">
+      受付日時 : 2026/08/30 19:00<br>
+      ご人数   : 2名
+    </div>
+    <div class="p-notice">
+      順番が来ましたら番号でお呼びします。<br>
+      店舗付近でお待ちください。<br><br>
+      ※お呼び出し時にご不在の場合は<br>
+      キャンセルとなる場合がございます。
+    </div>
   </div>
 
   <script>
@@ -74,7 +107,15 @@
         const ticketNo = result.ticketNo;
 
         if (ticketNo) {
-           printReceiptImage(ticketNo, peopleVal, timeStr);
+           // 印刷用の文字をセット
+           document.getElementById('p-ticket-no').innerText = ticketNo + " 番";
+           document.getElementById('p-info-text').innerHTML = `受付日時 : ${timeStr}<br>ご人数   : ${peopleVal}名`;
+
+           // スプレッドシートへの登録完了後、iPadの印刷画面を直接呼び出す
+           setTimeout(() => {
+             window.print();
+           }, 500);
+
         } else {
            alert("受付番号の取得に失敗しました。");
         }
@@ -86,61 +127,6 @@
         loading.style.display = 'none';
         document.getElementById('people').value = ""; 
       }
-    }
-
-    function printReceiptImage(ticketNo, people, timeStr) {
-      // 画面上でレシートの画像を自動作成する
-      const canvas = document.createElement('canvas');
-      canvas.width = 576; // mC-Print3の標準幅
-      canvas.height = 400;
-      const ctx = canvas.getContext('2d');
-
-      // 背景を白に
-      ctx.fillStyle = "#ffffff";
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-      // 文字を描画
-      ctx.fillStyle = "#000000";
-      ctx.textAlign = "center";
-
-      ctx.font = "bold 28px sans-serif";
-      ctx.fillText("楊國福 川崎店", canvas.width / 2, 45);
-
-      ctx.font = "20px sans-serif";
-      ctx.fillText("― 順番受付整理券 ―", canvas.width / 2, 80);
-
-      ctx.font = "16px sans-serif";
-      ctx.fillText("----------------------------------------------------------------", canvas.width / 2, 105);
-
-      ctx.font = "18px sans-serif";
-      ctx.fillText("あなたの受付番号", canvas.width / 2, 140);
-
-      ctx.font = "bold 55px sans-serif";
-      ctx.fillText(ticketNo + " 番", canvas.width / 2, 205);
-
-      ctx.font = "16px sans-serif";
-      ctx.fillText("----------------------------------------------------------------", canvas.width / 2, 230);
-
-      ctx.textAlign = "left";
-      ctx.font = "18px sans-serif";
-      ctx.fillText(" 受付日時 : " + timeStr, 50, 270);
-      ctx.fillText(" ご人数   : " + people + "名", 50, 305);
-
-      ctx.textAlign = "center";
-      ctx.font = "16px sans-serif";
-      ctx.fillText("順番が来ましたら番号でお呼びします。", canvas.width / 2, 350);
-      ctx.fillText("店舗付近でお待ちください。", canvas.width / 2, 375);
-
-      // 画像データ（Base64）に変換
-      const base64Image = canvas.toDataURL('image/png');
-
-      const backUrl = encodeURIComponent(window.location.href);
-      const imgStr = encodeURIComponent(base64Image);
-      
-      // 画像用の最も安定したPassPRNTコマンド
-      const passPrntUrl = `starpassprnt://v1/print/image?back=${backUrl}&image=${imgStr}&papier=true`;
-
-      window.location.href = passPrntUrl;
     }
   </script>
 </body>
