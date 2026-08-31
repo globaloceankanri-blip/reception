@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>オンライン順番受付 - 楊國福 川崎店</title>
+  <style>
+    body { font-family: 'Helvetica Neue', Arial, sans-serif; background-color: #fff3e0; margin: 0; padding: 20px; text-align: center; color: #333; }
+    .container { background-color: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); max-width: 400px; margin: 0 auto; }
+    h1 { color: #e65100; font-size: 22px; margin-top: 0; }
+    
+    /* 画面切り替え用のクラス */
+    #input-screen, #waiting-screen { display: none; }
+    .active { display: block !important; }
+
+    /* 入力画面のデザイン */
+    label { display: block; font-size: 18px; font-weight: bold; margin-bottom: 10px; }
+    input[type="number"] { width: 100%; padding: 15px; font-size: 24px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; text-align: center; margin-bottom: 20px; }
+    .btn { width: 100%; padding: 18px; font-size: 20px; font-weight: bold; color: white; background-color: #e65100; border: none; border-radius: 8px; cursor: pointer; }
+    .btn:active { background-color: #cc4800; }
+    
+    /* 待機画面のデザイン */
+    .ticket-box { background: #f9f9f9; border: 2px dashed #e65100; padding: 20px; border-radius: 10px; margin: 20px 0; }
+    .ticket-label { font-size: 16px; color: #666; }
+    .ticket-num { font-size: 50px; font-weight: bold; color: #e65100; margin: 10px 0; }
+    .status-text { font-size: 18px; font-weight: bold; margin-bottom: 15px; }
+    
+    /* 呼び出された時の特別デザイン */
+    .called-bg { background-color: #e65100 !important; color: white !important; }
+    .called-bg .ticket-box { background: white; border: none; }
+    .called-bg .ticket-num { color: #e65100; }
+    .called-bg h1, .called-bg .ticket-label, .called-bg .status-text { color: white; }
+
+    #loading { color: #e65100; font-weight: bold; margin-top: 15px; display: none; }
+  </style>
+</head>
+<body id="main-body">
+
+  <div class="container" id="main-container">
+    <h1>楊國福 川崎店<br>オンライン順番受付</h1>
+
+    <!-- ① 人数入力画面 -->
+    <div id="input-screen">
+      <label for="people">ご来店人数</label>
+      <input type="number" id="people" min="1" pattern="\d*" placeholder="例: 2">
+      <button class="btn" id="submitBtn" onclick="issueTicket()">順番待ちに並ぶ</button>
+      <div id="loading">受付処理中...</div>
+    </div>
+
+    <!-- ② 待機・呼び出し画面 -->
+    <div id="waiting-screen">
+      <div class="ticket-box">
+        <div class="ticket-label">あなたの受付番号</div>
+        <div class="ticket-num" id="display-ticket">--</div>
+      </div>
+      <div class="status-text" id="status-message">ただいま状況を確認中...</div>
+    </div>
+  </div>
+
+  <script>
+    // ⚠️ご自身のGASのURLに書き換えてください
+    const GAS_URL = "https://script.google.com/macros/s/AKfycbzMskWCJ9HQ3Pk4DlkdIUQX91_PxQbVrB_Q-HYKsLcLu690VDWjo3rhFeSOPvniGwk5/exec";
+    
+    let myTicketNo = localStorage.getItem('yGF_TicketNo'); // ブラウザに保存された番号を読み込む
+    let checkInterval;
+
+    // 画面を開いた時、すでに番号を持っていれば待機画面へ、無ければ入力画面へ
+    window.onload = () => {
+      if (myTicketNo) {
+        showScreen('waiting-screen');
+        document.getElementById('display-ticket').innerText = myTicketNo + " 番";
+        startStatusCheck();
+      } else {
+        showScreen('input-screen');
+      }
+    };
+
+    function showScreen(screenId) {
+      document.getElementById('input-screen').classList.remove('active');
+      document.getElementById('waiting-screen').classList.remove('active');
+      document.getElementById(screenId).classList.add('active');
+    }
+
+    // 受付処理
+    async function issueTicket() {
+      const btn = document.getElementById('submitBtn');
+      const loading = document.getElementById('loading');
+      const peopleVal = document.getElementById('people').value;
+      
+      if (!peopleVal || peopleVal < 1) {
+        alert("人数を正しく入力してください。");
+        return;
+      }
+      
+      btn.disabled = true;
+      loading.style.display = 'block';
+
+      const now = new Date();
+      const timeStr = now.getFullYear() + "/" + (now.getMonth() + 1) + "/" + now.getDate() + " " + now.getHours() + ":" + now.getMinutes();
+
+      try {
+        const response = await fetch(GAS_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: new URLSearchParams({ 'action': 'registerWeb', 'adult': peopleVal, 'time': timeStr })
+        });
+        const result = await response.json();
+
+        if (result.ticketNo) {
+          myTicketNo = result.ticketNo;
+          localStorage.setItem('yGF_TicketNo', myTicketNo); // ブラウザに番号を記憶させる
+          
+          document.getElementById('display-ticket').innerText = myTicketNo + " 番";
+          showScreen('waiting-screen');
+          startStatusCheck();
+        } else {
+          alert("エラーが発生しました。");
+          btn.disabled = false;
+        }
+      } catch (error) {
+        alert("通信エラーが発生しました。");
+        btn.disabled = false;
+      } finally {
+        loading.style.display = 'none';
+      }
+    }
+
+    // 5秒に1回、自分の順番が来たか確認する
+    function startStatusCheck() {
+      checkStatus(); // 初回即時実行
+      checkInterval = setInterval(checkStatus, 5000);
+    }
+
+    async function checkStatus() {
+      if (!myTicketNo) return;
+      try {
+        const response = await fetch(GAS_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: new URLSearchParams({ 'action': 'checkWebStatus', 'ticketNo': myTicketNo })
+        });
+        const result = await response.json();
+
+        const statusMsg = document.getElementById('status-message');
+        const body = document.getElementById('main-body');
+
+        if (result.status === '待ち') {
+          statusMsg.innerText = `前に ${result.waitingAhead} 組 お待ちです\nこの画面を開いたままお待ちください`;
+          body.classList.remove('called-bg');
+        } else if (result.status === '呼出中') {
+          statusMsg.innerText = "✨ 順番が来ました！ ✨\n店舗のスタッフへお声掛けください！";
+          body.classList.add('called-bg'); // 画面全体をオレンジ色に変えて目立たせる
+        } else if (result.status === '案内済み') {
+          statusMsg.innerText = "ご案内が完了しました。\nご来店ありがとうございます！";
+          body.classList.remove('called-bg');
+          clearInterval(checkInterval);
+          localStorage.removeItem('yGF_TicketNo'); // 完了したら記憶をリセット
+        }
+      } catch (e) {
+        console.error("ステータス確認エラー", e);
+      }
+    }
+  </script>
+</body>
+</html>
