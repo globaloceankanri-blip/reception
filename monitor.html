@@ -5,29 +5,51 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>お呼び出しモニター - 楊國福 川崎店</title>
   <style>
-    body { font-family: 'Helvetica Neue', Arial, sans-serif; background-color: #1a1a1a; color: white; margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; box-sizing: border-box; overflow: hidden; }
-    h1 { font-size: 3vw; color: #ff9800; margin-bottom: 15px; text-align: center; }
-    .container { display: flex; gap: 30px; width: 100%; max-width: 1200px; justify-content: center; flex-wrap: wrap; }
-    .card { background-color: #333; border: 4px solid #ff9800; border-radius: 20px; padding: 30px; text-align: center; min-width: 320px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); animation: pulse 2s infinite; }
-    .label { font-size: 2vw; color: #ccc; margin-bottom: 10px; }
-    .number { font-size: 9vw; font-weight: bold; color: #fff; margin: 0; line-height: 1.2; }
-    .sub { font-size: 1.8vw; color: #ffeb3b; margin-top: 15px; }
-    .empty { font-size: 2.5vw; color: #666; margin-top: 40px; text-align: center; }
+    body { font-family: 'Helvetica Neue', Arial, sans-serif; background-color: #1a1a1a; color: white; margin: 0; padding: 20px; display: flex; flex-direction: column; height: 100vh; box-sizing: border-box; overflow: hidden; }
+    h1 { font-size: 2.5vw; color: #ff9800; margin: 0 0 15px 0; text-align: center; }
     
-    /* 音声有効化ボタン */
-    #sound-btn { position: fixed; bottom: 20px; right: 20px; background: #ff9800; color: #000; padding: 15px 25px; border-radius: 30px; font-weight: bold; font-size: 18px; border: none; cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.5); z-index: 9999; }
-    @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.02); } 100% { transform: scale(1.01); } }
+    /* 全体を左右に分割 */
+    .main-layout { display: flex; flex: 1; gap: 20px; width: 100%; max-height: calc(100vh - 80px); }
+    
+    /* 左側：呼び出し済みリスト（小さめ） */
+    .left-pane { flex: 1; background: #222; border-radius: 15px; padding: 20px; display: flex; flex-direction: column; border: 2px solid #444; }
+    .left-title { font-size: 1.8vw; color: #aaa; margin-bottom: 15px; text-align: center; border-bottom: 2px solid #444; padding-bottom: 8px; }
+    .history-list { display: flex; flex-direction: column; gap: 10px; overflow-y: auto; flex: 1; }
+    .history-card { background: #333; padding: 15px; border-radius: 10px; display: flex; justify-content: space-between; align-items: center; border-left: 6px solid #888; }
+    .history-num { font-size: 2.2vw; font-weight: bold; }
+    .history-sub { font-size: 1.2vw; color: #bbb; }
+
+    /* 右側：最新の呼び出し（一番大きく目立つ） */
+    .right-pane { flex: 1.2; background: #2a1f14; border-radius: 15px; padding: 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; border: 4px solid #ff9800; box-shadow: 0 0 30px rgba(255,152,0,0.3); }
+    .right-title { font-size: 2.2vw; color: #ff9800; margin-bottom: 10px; font-weight: bold; }
+    .latest-card { text-align: center; width: 100%; }
+    .latest-num { font-size: 13vw; font-weight: bold; color: #fff; margin: 0; line-height: 1.1; text-shadow: 0 5px 20px rgba(0,0,0,0.8); }
+    .latest-sub { font-size: 2.5vw; color: #ffeb3b; margin-top: 15px; }
+    
+    .empty-pane { color: #666; font-size: 2vw; text-align: center; margin: auto; }
+
+    #sound-btn { position: fixed; bottom: 15px; right: 15px; background: #ff9800; color: #000; padding: 12px 20px; border-radius: 30px; font-weight: bold; font-size: 16px; border: none; cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.5); z-index: 9999; }
   </style>
 </head>
 <body>
 
-  <!-- 音声有効化ボタン（邪魔にならない右下に配置） -->
   <button id="sound-btn" onclick="enableAudio()">🔊 音声を有効にする（最初に押してください）</button>
 
   <h1>楊國福 川崎店 お呼び出し状況</h1>
   
-  <div class="container" id="monitor-container">
-    <div class="empty">順番にお呼びしております。店内でお待ちください。</div>
+  <div class="main-layout">
+    <!-- 左側：呼び出し済み（最新以外） -->
+    <div class="left-pane">
+      <div class="left-title">その他の呼び出し中番号</div>
+      <div class="history-list" id="left-list">
+        <div class="empty-pane">現在ありません</div>
+      </div>
+    </div>
+
+    <!-- 右側：最新の呼び出し -->
+    <div class="right-pane" id="right-pane">
+      <div class="empty-pane">ただいまお呼び出し中の番号はありません</div>
+    </div>
   </div>
 
   <script>
@@ -36,30 +58,22 @@
     let lastCalledNumbers = "";
     let isAudioEnabled = false;
 
-    // 音声を有効化するボタンの処理
     function enableAudio() {
       isAudioEnabled = true;
-      const btn = document.getElementById('sound-btn');
-      btn.style.display = 'none'; // ボタンを消す
-      
-      // テスト発話
+      document.getElementById('sound-btn').style.display = 'none';
       speakText("音声案内が有効になりました。");
     }
 
-    // ブラウザの音声合成で読み上げる関数
     function speakText(text) {
       if (!isAudioEnabled) return;
-      
-      // 音声合成が使えるか確認
       if ('speechSynthesis' in window) {
         const utterance = new SpeechSynthesisUtterance(text);
         utterance.lang = 'ja-JP';
-        utterance.rate = 1.0; // 読み上げ速度
+        utterance.rate = 1.0;
         window.speechSynthesis.speak(utterance);
       }
     }
 
-    // 3秒に1回、自動でサーバーに確認しに行く
     setInterval(checkCalling, 3000);
 
     async function checkCalling() {
@@ -70,18 +84,15 @@
           body: new URLSearchParams({ 'action': 'getCallingList' })
         });
         const result = await response.json();
-        
-        const container = document.getElementById('monitor-container');
         const callingList = result.callingList || [];
 
         const currentNumbersStr = callingList.map(item => item.ticketNo).join(',');
         
-        // 新しく呼ばれた番号があるかチェック
-        if (currentNumbersStr !== lastCalledNumbers && currentNumbersStr !== "" && lastCalledNumbers !== "") {
-          // 新規に追加された番号を探してアナウンスする
-          const oldList = lastCalledNumbers.split(',');
-          const newList = callingList.map(item => String(item.ticketNo));
+        // 【修正】呼び出しが0人から1人目に変わった時も確実に音声が鳴るようにしました
+        if (currentNumbersStr !== lastCalledNumbers && currentNumbersStr !== "") {
           
+          const oldList = lastCalledNumbers === "" ? [] : lastCalledNumbers.split(',');
+          const newList = callingList.map(item => String(item.ticketNo));
           const newlyCalled = newList.filter(no => !oldList.includes(no));
           
           if (newlyCalled.length > 0 && isAudioEnabled) {
@@ -92,20 +103,40 @@
         
         lastCalledNumbers = currentNumbersStr;
 
+        const leftList = document.getElementById('left-list');
+        const rightPane = document.getElementById('right-pane');
+
         if (callingList.length > 0) {
-          container.innerHTML = "";
-          callingList.forEach(item => {
-            const card = document.createElement('div');
-            card.className = 'card';
-            card.innerHTML = `
-              <div class="label">お呼び出し番号</div>
-              <div class="number">${item.ticketNo} 番</div>
-              <div class="sub">（ ${item.people}名様 ）</div>
-            `;
-            container.appendChild(card);
-          });
+          // 最後に呼ばれた番号（一番新しいもの）を右側に配置
+          const latest = callingList[callingList.length - 1];
+          rightPane.innerHTML = `
+            <div class="right-title">✨ ただいまお呼び出し中 ✨</div>
+            <div class="latest-card">
+              <div class="latest-num">${latest.ticketNo} 番</div>
+              <div class="latest-sub">（ ${latest.people}名様 ）</div>
+            </div>
+          `;
+
+          // 残りの番号を左側に配置
+          if (callingList.length > 1) {
+            leftList.innerHTML = "";
+            const historyItems = callingList.slice(0, callingList.length - 1).reverse();
+            historyItems.forEach(item => {
+              const div = document.createElement('div');
+              div.className = 'history-card';
+              div.innerHTML = `
+                <div class="history-num">${item.ticketNo} 番</div>
+                <div class="history-sub">（ ${item.people}名様 ）</div>
+              `;
+              leftList.appendChild(div);
+            });
+          } else {
+            leftList.innerHTML = `<div class="empty-pane">ほかに呼び出し中の番号はありません</div>`;
+          }
+
         } else {
-          container.innerHTML = `<div class="empty">順番にお呼びしております。店内でお待ちください。</div>`;
+          rightPane.innerHTML = `<div class="empty-pane">ただいまお呼び出し中の番号はありません</div>`;
+          leftList.innerHTML = `<div class="empty-pane">現在ありません</div>`;
         }
 
       } catch (error) {
